@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HydroNode Setup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.08),
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      color: #1d1d1f;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #86868b;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.4;
+    }
+
+    .device-info {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 13px;
+      color: #86868b;
+    }
+
+    .device-info .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #1d1d1f;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: 1px solid #d2d2d7;
+      background: rgba(255, 255, 255, 0.9);
+      color: #1d1d1f;
+      transition: all 0.25s ease;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #007aff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+      background: #fff;
+    }
+
+    input::placeholder { color: #c7c7cc; }
+
+    .pw { position: relative; }
+    .pw input { padding-right: 50px; }
+
+    .icon-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #8e8e93;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover { background: rgba(0, 0, 0, 0.05); color: #1d1d1f; }
+    .icon-btn svg { width: 20px; height: 20px; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 12px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.04);
+      color: #1d1d1f;
+      letter-spacing: -0.2px;
+    }
+
+    .btn:hover { background: rgba(0, 0, 0, 0.07); }
+    .btn:active { transform: scale(0.98); }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #007aff, #0056d6);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, #0056d6, #0041a8);
+      box-shadow: 0 6px 18px rgba(0, 122, 255, 0.4);
+    }
+
+    .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+    .status {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #86868b;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    .status.ok { color: #34c759; }
+    .status.err { color: #ff3b30; }
+
+    .hint {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: rgba(0, 0, 0, 0.02);
+      color: #86868b;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .footer {
+      margin-top: 18px;
+      text-align: center;
+      color: #c7c7cc;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #86868b;
+    }
+
+    .toggle-label {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-label input { width: 16px; height: 16px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>HydroNode Setup</h2>
+      <p class="subtitle">Connect HydroNode to your Wi-Fi network</p>
+
+      <div class="device-info">
+        Device IP: <span class="mono" id="devHint">192.168.4.1</span>
+      </div>
+
+      <div class="form-group">
+        <label for="ssid">Wi-Fi Name (SSID)</label>
+        <input id="ssid" autocomplete="off" spellcheck="false" placeholder="e.g. UniMAP-WiFi" />
+      </div>
+
+      <div class="form-group">
+        <label for="pass">Wi-Fi Password</label>
+        <div class="pw">
+          <input id="pass" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <button class="icon-btn" type="button" id="showPassBtn" aria-label="Show password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle-label">
+          <input id="show" type="checkbox" />
+          <span>Show password</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnStatus" type="button">Check Status</button>
+        <button class="btn primary" id="btnSave" type="button">Save &amp; Reboot</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="hint">
+        <b>Tip:</b> After saving, HydroNode will reboot and attempt to connect to your router.
+        If connection fails within ~6 s, it returns to AP mode.
+      </div>
+    </div>
+
+    <div class="footer">/api/status · /api/wifi</div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+
+    function setStatus(msg, cls = "") {
+      statusEl.className = "status " + cls;
+      statusEl.textContent = msg || "";
+    }
+
+    $("show").addEventListener("change", (e) => {
+      $("pass").type = e.target.checked ? "text" : "password";
+    });
+
+    $("showPassBtn").addEventListener("click", () => {
+      const p = $("pass");
+      p.type = p.type === "password" ? "text" : "password";
+    });
+
+    async function getStatus() {
+      try {
+        setStatus("Checking device status…");
+        const r = await fetch("/api/status", { cache: "no-store" });
+        const j = await r.json();
+        if (!j.ok) throw new Error("bad_status");
+
+        const ip   = j.wifi?.ip || "192.168.4.1";
+        const ssid = j.wifi?.ssid || "";
+        const mode = j.wifi?.mode;
+
+        $("devHint").textContent = ip;
+        if (ssid && !$("ssid").value) $("ssid").value = ssid;
+
+        setStatus("Device OK. Mode=" + mode + ", IP=" + ip, "ok");
+      } catch (e) {
+        setStatus("Cannot reach /api/status (normal in captive portal).", "err");
+      }
+    }
+
+    async function saveWifi() {
+      const ssid = $("ssid").value.trim();
+      const pass = $("pass").value;
+
+      if (!ssid) { setStatus("Please enter SSID.", "err"); return; }
+
+      $("btnSave").disabled = true;
+      $("btnStatus").disabled = true;
+
+      try {
+        setStatus("Saving Wi-Fi…");
+        const r = await fetch("/api/wifi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ssid, pass })
+        });
+
+        let j = null;
+        try { j = await r.json(); } catch (_) {}
+
+        if (!r.ok || (j && j.ok === false)) {
+          const err = (j && (j.err || j.error)) ? (j.err || j.error) : ("HTTP " + r.status);
+          throw new Error(err);
+        }
+
+        setStatus("Saved. Rebooting… reconnect to your router Wi-Fi.", "ok");
+        setTimeout(() => {
+          setStatus("If HydroNode reboots, join your router Wi-Fi and open its IP.", "ok");
+        }, 1800);
+
+      } catch (e) {
+        setStatus("Save failed: " + (e.message || e), "err");
+        $("btnSave").disabled = false;
+        $("btnStatus").disabled = false;
+      }
+    }
+
+    $("btnStatus").addEventListener("click", getStatus);
+    $("btnSave").addEventListener("click", saveWifi);
+
+    getStatus();
+  </script>
+</body>
+</html>

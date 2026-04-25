@@ -1,0 +1,539 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup Wi-Fi</title>
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+    
+    /* Card Container */
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 18px;
+      padding: 36px 32px;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.08),
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    
+    /* Header */
+    h2 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: #1d1d1f;
+      text-align: center;
+    }
+    
+    .subtitle {
+      color: #86868b;
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 32px;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+    
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 22px;
+    }
+    
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 16px 18px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: 1px solid #d2d2d7;
+      background: rgba(255, 255, 255, 0.9);
+      color: #1d1d1f;
+      transition: all 0.25s ease;
+      outline: none;
+    }
+    
+    input:focus {
+      border-color: #007aff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+      background: #fff;
+    }
+    
+    input::placeholder {
+      color: #c7c7cc;
+    }
+    
+    input:disabled {
+      background: #f5f5f7;
+      color: #86868b;
+      border-color: #d2d2d7;
+      cursor: not-allowed;
+    }
+    
+    /* Password Field */
+    .pw {
+      position: relative;
+    }
+    
+    .pw input {
+      padding-right: 56px;
+    }
+    
+    .icon-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #8e8e93;
+      transition: all 0.2s ease;
+    }
+    
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #1d1d1f;
+    }
+    
+    .icon-btn:active {
+      background: rgba(0, 0, 0, 0.08);
+      transform: translateY(-50%) scale(0.96);
+    }
+    
+    .icon-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+    
+    /* Submit Button */
+    .primary {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 17px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #007aff, #0056d6);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+      margin-top: 8px;
+      letter-spacing: -0.2px;
+      box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    }
+    
+    .primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0056d6, #0041a8);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 122, 255, 0.4);
+    }
+    
+    .primary:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+    
+    .primary:disabled {
+      background: #c7c7cc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      opacity: 0.7;
+    }
+    
+    /* Status Message */
+    .status {
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-top: 20px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+      font-weight: 500;
+    }
+    
+    .status.success {
+      background: rgba(52, 199, 89, 0.1);
+      color: #34c759;
+      border: 1px solid rgba(52, 199, 89, 0.2);
+      display: block;
+    }
+    
+    .status.error {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+      border: 1px solid rgba(255, 59, 48, 0.2);
+      display: block;
+    }
+    
+    .status.info {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+      border: 1px solid rgba(0, 122, 255, 0.2);
+      display: block;
+    }
+    
+    /* Hint Text */
+    .hint {
+      text-align: center;
+      color: #86868b;
+      font-size: 15px;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      line-height: 1.5;
+    }
+    
+    .hint strong {
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+    
+    /* Loading Animation */
+    .loader {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+    
+    .primary.loading .btn-text {
+      display: none;
+    }
+    
+    .primary.loading .loader {
+      display: block;
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Device Info */
+    .device-info {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 28px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .device-info p {
+      font-size: 14px;
+      color: #86868b;
+      margin-bottom: 8px;
+    }
+    
+    .device-id {
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      color: #1d1d1f;
+      font-weight: 500;
+      font-size: 15px;
+      word-break: break-all;
+    }
+    
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card {
+        padding: 28px 22px;
+      }
+      
+      h2 {
+        font-size: 24px;
+      }
+      
+      input, .primary {
+        padding: 15px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Set up Wi-Fi</h2>
+      <p class="subtitle">Connect your device to a wireless network</p>
+      
+      <div class="device-info">
+        <p>Device Information</p>
+        <div class="device-id" id="deviceId">switchnode-xxxx.local</div>
+      </div>
+      
+      <form id="wifiForm">
+        <div class="form-group">
+          <label for="ssid">Network Name</label>
+          <input 
+            type="text" 
+            name="ssid" 
+            id="ssid" 
+            required 
+            placeholder="Enter Wi-Fi network name"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label for="pass">Password</label>
+          <div class="pw">
+            <input 
+              type="password" 
+              name="pass" 
+              id="pass" 
+              placeholder="Enter Wi-Fi password (leave empty if open network)"
+              autocomplete="off"
+            >
+            <button type="button" class="icon-btn" onclick="togglePass()" aria-label="Show password">
+              <!-- Eye icon (SVG) -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <button type="submit" class="primary" id="submitBtn">
+          <span class="btn-text">Save & Reboot</span>
+          <div class="loader"></div>
+        </button>
+      </form>
+      
+      <p class="hint">
+        After connecting, access dashboard at <strong id="mdnsHint">switchnode-xxxxx.local</strong>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const wifiForm = document.getElementById('wifiForm');
+    const passInput = document.getElementById('pass');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusEl = document.getElementById('status');
+    const ssidInput = document.getElementById('ssid');
+    const deviceIdEl = document.getElementById('deviceId');
+    const mdnsHint = document.getElementById('mdnsHint');
+    
+    // Toggle password visibility
+    function togglePass() {
+      const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passInput.setAttribute('type', type);
+      const iconBtn = passInput.nextElementSibling;
+      iconBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+    }
+    
+    // Show status message
+    function showStatus(message, type = 'success') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+    
+    // Fetch device info on load
+    async function fetchDeviceInfo() {
+      try {
+        const response = await fetch('/api/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.mdns) {
+            deviceIdEl.textContent = data.mdns;
+            mdnsHint.textContent = data.mdns;
+          }
+        }
+      } catch (e) {
+        console.log('Could not fetch device info, using default');
+        // Try to get device ID from AP name as fallback
+        const apName = document.title;
+        const match = apName.match(/SwitchNode-(.+)/);
+        if (match) {
+          const id = match[1].toLowerCase();
+          deviceIdEl.textContent = `switchnode-${id}.local`;
+          mdnsHint.textContent = `switchnode-${id}.local`;
+        }
+      }
+    }
+
+    // Add this to ap.html to fetch and display networks
+    async function scanNetworks() {
+      try {
+        const response = await fetch('/api/scan');
+        const networks = await response.json();
+        // Populate a dropdown or list
+      } catch (e) {
+        console.log('Scan failed');
+      }
+    }
+    
+    // Form submission
+    wifiForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Validate form
+      const ssid = ssidInput.value.trim();
+      if (!ssid) {
+        showStatus('Please enter a Wi-Fi network name', 'error');
+        ssidInput.focus();
+        return;
+      }
+      
+      // Show loading state
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+      showStatus('Saving Wi-Fi credentials...', 'info');
+      
+      // Get password (can be empty for open networks)
+      const pass = passInput.value;
+      
+      try {
+        // Create URL encoded form data for ESP32
+        const urlEncodedData = new URLSearchParams();
+        urlEncodedData.append('ssid', ssid);
+        urlEncodedData.append('pass', pass);
+        
+        console.log('Sending to ESP32:', {
+          ssid: ssid,
+          pass: pass ? '••••••••' : '(no password)'
+        });
+        
+        // Make the actual API call to ESP32
+        const response = await fetch('/api/wifi', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: urlEncodedData.toString()
+        });
+        
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
+          throw new Error('Invalid response from device');
+        }
+        
+        console.log('ESP32 response:', data);
+        
+        if (data.ok) {
+          showStatus('✓ Wi-Fi credentials saved! Device is rebooting...', 'success');
+          
+          // Disable form (device will reboot)
+          ssidInput.disabled = true;
+          passInput.disabled = true;
+          
+          // Show countdown
+          let seconds = 5;
+          const countdown = setInterval(() => {
+            if (seconds > 0) {
+              showStatus(`Device rebooting in ${seconds} seconds...`, 'info');
+              seconds--;
+            } else {
+              clearInterval(countdown);
+              showStatus('Rebooting... Please reconnect to your Wi-Fi network', 'info');
+            }
+          }, 1000);
+          
+          // After 6 seconds, try to redirect to the device's mDNS address
+          setTimeout(() => {
+            const mdnsAddress = deviceIdEl.textContent;
+            window.location.href = `http://${mdnsAddress}`;
+          }, 6000);
+          
+        } else {
+          const errorMsg = data.err || 'Failed to save credentials';
+          showStatus('✗ Error: ' + errorMsg, 'error');
+          submitBtn.classList.remove('loading');
+          submitBtn.disabled = false;
+        }
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus('✗ Failed to connect to device. Please try again.', 'error');
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      }
+    });
+    
+    // Load device info when page loads
+    window.addEventListener('load', () => {
+      ssidInput.focus();
+      fetchDeviceInfo();
+    });
+    
+    // Add enter key support
+    ssidInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        passInput.focus();
+      }
+    });
+    
+    passInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        wifiForm.dispatchEvent(new Event('submit'));
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HydroNode</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Dynamic Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span class="status-dot">●</span>
+                <span class="status-text">HydroNode</span>
+                <span class="status-dot">●</span>
+            </div>
+            <div class="status-right">
+                <span class="wifi-indicator" id="wifiIndicator">◉</span>
+                <span class="mqtt-indicator" id="mqttIndicator">◉</span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Hero Section -->
+            <div class="hero">
+                <div class="hero-icon">
+                    <span class="liquid-drop">💧</span>
+                </div>
+                <h1 class="hero-title">HydroNode</h1>
+                <div class="hero-subtitle">
+                    <span class="version" id="fwVersion">Ver - 2.1.0</span>
+                    <span class="separator">•</span>
+                    <span class="ip-address" id="ipAddress">192.168.4.1</span>
+                </div>
+            </div>
+
+            <!-- Sensor Cards Grid -->
+            <div class="sensors-grid">
+                <!-- EC Card -->
+                <div class="sensor-card ec-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚡</span>
+                        <span class="card-title">EC</span>
+                    </div>
+                    <div class="card-value" id="ecValue">0</div>
+                    <div class="card-unit">mS/cm</div>
+                    <div class="card-footer">
+                        <span class="voltage" id="ecVoltage">0.00V</span>
+                        <span class="cal-badge" id="ecCalBadge">⚡ Calibrated</span>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+
+                <!-- Water Level Card -->
+                <div class="sensor-card water-card">
+                    <div class="card-header">
+                        <span class="card-icon">💧</span>
+                        <span class="card-title">Water Level</span>
+                    </div>
+                    <div class="card-value" id="levelValue">0.0</div>
+                    <div class="card-unit" id="levelUnit">%</div>
+                    <div class="water-progress-container">
+                        <div class="water-progress-fill" id="waterProgress" style="width: 0%;"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="voltage" id="levelVoltage">0.00V</span>
+                        <span class="cal-badge" id="levelCalBadge">⚡ Calibrated</span>
+                    </div>
+                </div>
+
+                <!-- ✅ Temperature Card -->
+                <div class="sensor-card temp-card">
+                    <div class="card-header">
+                        <span class="card-icon">🌡️</span>
+                        <span class="card-title">Temperature</span>
+                    </div>
+                    <div class="card-value" id="tempValue">--.-</div>
+                    <div class="card-unit">°C</div>
+                    <div class="card-footer">
+                        <span class="voltage" id="tempSource">DS18B20</span>
+                        <span class="cal-badge" id="tempBadge">● Live</span>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Bar (iOS Style) -->
+        <div class="nav-bar">
+            <div class="nav-item" onclick="navigateTo('calibration')">
+                <span class="nav-icon">🔧</span>
+                <span class="nav-label">Cal</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('mqtt')">
+                <span class="nav-icon">📡</span>
+                <span class="nav-label">MQTT</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibration Modal -->
+    <div class="modal" id="calibrationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Calibration</h2>
+                <button class="close-button" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="cal-option" onclick="startECCalibration()">
+                    <div class="cal-icon">⚡</div>
+                    <div class="cal-info">
+                        <div class="cal-title">EC Calibration</div>
+                        <div class="cal-description" id="ecCalStatus">2-point calibration</div>
+                    </div>
+                    <div class="cal-chevron">›</div>
+                </div>
+                <div class="cal-option" onclick="startLevelCalibration()">
+                    <div class="cal-icon">💧</div>
+                    <div class="cal-info">
+                        <div class="cal-title">Level Calibration</div>
+                        <div class="cal-description" id="levelCalStatus">Set empty & full</div>
+                    </div>
+                    <div class="cal-chevron">›</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MQTT Settings Modal -->
+    <div class="modal" id="mqttModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>MQTT Settings</h2>
+                <button class="close-button" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <div class="setting-row">
+                        <label class="toggle">
+                            <input type="checkbox" id="mqttEnabled" onchange="toggleMQTT()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="setting-label">Enable MQTT</span>
+                    </div>
+                </div>
+
+                <div class="setting-group" id="mqttSettings">
+                    <div class="setting-row">
+                        <label>Host</label>
+                        <input type="text" id="mqttHost" placeholder="192.168.1.100">
+                    </div>
+                    <div class="setting-row">
+                        <label>Port</label>
+                        <input type="number" id="mqttPort" value="1883">
+                    </div>
+                    <div class="setting-row">
+                        <label>Username</label>
+                        <input type="text" id="mqttUser" placeholder="optional">
+                    </div>
+                    <div class="setting-row">
+                        <label>Password</label>
+                        <input type="password" id="mqttPass" placeholder="••••••••">
+                    </div>
+                    <div class="setting-row">
+                        <label>Base Topic</label>
+                        <input type="text" id="mqttTopic" value="hydronode">
+                    </div>
+                    <div class="setting-row">
+                        <label>Update Interval</label>
+                        <select id="mqttInterval">
+                            <option value="1000">1 second</option>
+                            <option value="2000">2 seconds</option>
+                            <option value="5000">5 seconds</option>
+                            <option value="10000">10 seconds</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="save-button" onclick="saveMQTT()">Save Changes</button>
+                <div class="connection-status" id="mqttConnectionStatus">
+                    <span class="status-dot offline"></span>
+                    Disconnected
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

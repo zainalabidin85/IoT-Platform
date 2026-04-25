@@ -1,0 +1,923 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SwitchNode</title>
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+    
+    /* Card Container */
+    .wrap {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.08),
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 36px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    
+    .header h2 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #1d1d1f;
+      flex-grow: 1;
+      text-align: center;
+    }
+    
+    .gear {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 3, 3, 0);
+      color: #242425;
+      transition: all 0.25s ease;
+      border: 1px solid rgb(255, 255, 255);
+      text-decoration: none;
+      position: relative;
+    }
+    
+    .gear:hover {
+      background: rgb(255, 255, 255);
+      color: #2d2d2e;
+      transform: rotate(45deg);
+    }
+    
+    .gear:active {
+      transform: scale(0.95) rotate(45deg);
+    }
+    
+    .gear svg {
+      width: 25px;
+      height: 25px;
+    }
+    
+    /* Tooltip */
+    .gear[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -30px;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+    
+    /* Big Switch */
+    .big-switch {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: none;
+      margin: 0 auto 36px;
+      display: block;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+      outline: none;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+    
+    .big-switch.off {
+      background: linear-gradient(135deg, #8e8e93, #6d6d71);
+      color: white;
+      box-shadow: 
+        0 10px 30px rgba(142, 142, 147, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+    
+    .big-switch.on {
+      background: linear-gradient(135deg, #34c759, #2da44e);
+      color: white;
+      box-shadow: 
+        0 10px 30px rgba(52, 199, 89, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      transform: scale(1.05);
+    }
+    
+    .big-switch::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent 70%);
+      pointer-events: none;
+    }
+    
+    .big-switch:hover {
+      transform: scale(1.08);
+      box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+    
+    .big-switch.on:hover {
+      box-shadow: 
+        0 15px 40px rgba(52, 199, 89, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+    
+    .big-switch:active {
+      transform: scale(0.98);
+      transition: transform 0.1s ease;
+    }
+    
+    .big-switch:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: scale(1) !important;
+    }
+    
+    /* Status Pills */
+    .pills {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 32px;
+    }
+    
+    .pill {
+      flex: 1;
+      padding: 18px 16px;
+      border-radius: 16px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+      background: rgba(0, 0, 0, 0.03);
+      color: #8e8e93;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 90px;
+      position: relative;
+    }
+    
+    .pill::before {
+      content: attr(data-label);
+      font-size: 13px;
+      font-weight: 400;
+      color: #8e8e93;
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+    
+    .pill.on {
+      background: rgba(52, 199, 89, 0.1);
+      color: #2da44e;
+      border-color: rgba(52, 199, 89, 0.2);
+      box-shadow: 0 2px 10px rgba(52, 199, 89, 0.1);
+    }
+    
+    .pill.off {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+      border-color: rgba(255, 59, 48, 0.2);
+    }
+    
+    .pill.disabled {
+      background: rgba(142, 142, 147, 0.1);
+      color: #8e8e93;
+      border-color: rgba(142, 142, 147, 0.2);
+    }
+    
+    .pill.info {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+      border-color: rgba(0, 122, 255, 0.2);
+    }
+    
+    /* Signal Strength Indicator */
+    .signal-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    
+    .signal-bars {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+    }
+    
+    .signal-bar {
+      width: 4px;
+      background: currentColor;
+      border-radius: 2px;
+      transition: height 0.3s ease;
+    }
+    
+    .signal-bar:nth-child(1) { height: 8px; }
+    .signal-bar:nth-child(2) { height: 12px; }
+    .signal-bar:nth-child(3) { height: 16px; }
+    .signal-bar:nth-child(4) { height: 20px; }
+    
+    .signal-text {
+      opacity: 0.8;
+    }
+    
+    /* Tooltip for MQTT topics */
+    .pill[data-tooltip] {
+      cursor: help;
+    }
+    
+    .pill[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Connection Status */
+    .connection-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 24px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 14px;
+      color: #8e8e93;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff3b30;
+      animation: pulse 2s infinite;
+    }
+    
+    .connection-dot.connected {
+      background: #34c759;
+      animation: none;
+    }
+    
+    .last-update {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-left: auto;
+    }
+    
+    /* Pull to refresh hint */
+    .refresh-hint {
+      text-align: center;
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 16px;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
+    }
+    
+    .refresh-hint.visible {
+      opacity: 1;
+    }
+    
+    /* Loading Animation */
+    .loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      animation: loading 1.5s infinite;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      z-index: 100;
+      white-space: nowrap;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .toast.success {
+      background: rgba(52, 199, 89, 0.9);
+    }
+    
+    .toast.error {
+      background: rgba(255, 59, 48, 0.9);
+    }
+    
+    .toast.info {
+      background: rgba(0, 122, 255, 0.9);
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    @keyframes switchOn {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1.05); }
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    .error-shake {
+      animation: shake 0.3s ease;
+    }
+    
+    /* Responsive */
+    @media (max-width: 520px) {
+      .card {
+        padding: 24px 20px;
+      }
+      
+      .big-switch {
+        width: 180px;
+        height: 180px;
+        font-size: 24px;
+      }
+      
+      .pills {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .pill {
+        min-height: 70px;
+        padding: 16px;
+      }
+      
+      .connection-status {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .last-update {
+        margin-left: 0;
+      }
+    }
+    
+    @media (max-width: 380px) {
+      .big-switch {
+        width: 160px;
+        height: 160px;
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <a href="/settings" class="gear" data-tooltip="Settings" aria-label="Settings">
+        <!-- Gear icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor"
+            d="M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4zm9.4 4a7.5 7.5 0 0 0-.1-1l2.1-1.6-2-3.5-2.5 1a7.8 7.8 0 0 0-1.7-1l-.4-2.6h-4l-.4 2.6a7.8 7.8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.8 7.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.8 7.8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6a7.5 7.5 0 0 0 .1-1z"/>
+        </svg>
+      </a>
+      <h2>SwitchNode</h2>
+      <div style="width: 42px;"></div> <!-- Spacer for symmetry -->
+    </div>
+
+    <button id="btn" class="big-switch off" type="button">OFF</button>
+
+    <div class="pills">
+      <span id="pill-ip" class="pill info" data-label="IP Address">...</span>
+      <span id="pill-mqtt" class="pill" data-label="MQTT Status">...</span>
+      <span id="pill-input" class="pill" data-label="Input Status">...</span>
+    </div>
+
+    <div class="connection-status">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="connection-dot" class="connection-dot"></span>
+        <span id="connection-text">Connecting...</span>
+      </div>
+      <span id="signal-display" class="signal-container" style="display: none;">
+        <span class="signal-bars">
+          <span class="signal-bar"></span>
+          <span class="signal-bar"></span>
+          <span class="signal-bar"></span>
+          <span class="signal-bar"></span>
+        </span>
+        <span id="signal-text" class="signal-text"></span>
+      </span>
+      <span id="last-update" class="last-update"></span>
+    </div>
+    
+    <div id="refresh-hint" class="refresh-hint">Pull down to refresh</div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<script>
+  (function() {
+    'use strict';
+    
+    // Cache DOM elements
+    const elements = {
+      btn: document.getElementById('btn'),
+      pillIp: document.getElementById('pill-ip'),
+      pillMqtt: document.getElementById('pill-mqtt'),
+      pillInput: document.getElementById('pill-input'),
+      connectionDot: document.getElementById('connection-dot'),
+      connectionText: document.getElementById('connection-text'),
+      lastUpdate: document.getElementById('last-update'),
+      signalDisplay: document.getElementById('signal-display'),
+      signalText: document.getElementById('signal-text'),
+      toast: document.getElementById('toast'),
+      refreshHint: document.getElementById('refresh-hint')
+    };
+
+    // State
+    let state = {
+      busy: false,
+      lastUpdateTime: null,
+      lastData: null,
+      refreshInterval: null,
+      connectionLost: false,
+      touchStart: 0,
+      toastTimeout: null
+    };
+
+    // Constants
+    const REFRESH_INTERVAL = 2000; // 2 seconds
+    const CONNECTION_TIMEOUT = 10000; // 10 seconds without update = disconnected
+
+    // Utility Functions
+    function formatTimeSince(date) {
+      if (!date) return '';
+      const seconds = Math.floor((Date.now() - date) / 1000);
+      if (seconds < 5) return 'just now';
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      return `${Math.floor(seconds / 3600)}h ago`;
+    }
+
+    function showToast(message, type = 'info', duration = 3000) {
+      if (state.toastTimeout) clearTimeout(state.toastTimeout);
+      
+      elements.toast.textContent = message;
+      elements.toast.className = `toast ${type} show`;
+      
+      state.toastTimeout = setTimeout(() => {
+        elements.toast.classList.remove('show');
+      }, duration);
+    }
+
+    function updateSignalStrength(rssi) {
+      if (rssi === undefined || rssi === null) {
+        elements.signalDisplay.style.display = 'none';
+        return;
+      }
+      
+      elements.signalDisplay.style.display = 'flex';
+      
+      // Update signal bars
+      const bars = document.querySelectorAll('.signal-bar');
+      let quality = 0;
+      
+      if (rssi > -50) quality = 4; // Excellent
+      else if (rssi > -60) quality = 3; // Good
+      else if (rssi > -70) quality = 2; // Fair
+      else quality = 1; // Weak
+      
+      bars.forEach((bar, index) => {
+        bar.style.opacity = index < quality ? '1' : '0.3';
+      });
+      
+      // Update text
+      let qualityText = '';
+      if (rssi > -50) qualityText = 'Excellent';
+      else if (rssi > -60) qualityText = 'Good';
+      else if (rssi > -70) qualityText = 'Fair';
+      else qualityText = 'Weak';
+      
+      elements.signalText.textContent = `${qualityText} (${rssi} dBm)`;
+    }
+
+    function updateConnectionStatus(connected, reason = '') {
+      if (connected) {
+        elements.connectionDot.className = 'connection-dot connected';
+        elements.connectionText.textContent = 'Connected to device';
+        state.connectionLost = false;
+      } else {
+        elements.connectionDot.className = 'connection-dot';
+        elements.connectionText.textContent = reason || 'Disconnected - retrying...';
+        state.connectionLost = true;
+      }
+    }
+
+    function setButtonState(on) {
+      const wasOn = elements.btn.classList.contains('on');
+      elements.btn.textContent = on ? 'ON' : 'OFF';
+      elements.btn.className = 'big-switch ' + (on ? 'on' : 'off');
+      
+      if (wasOn !== on) {
+        elements.btn.style.animation = 'switchOn 0.3s ease';
+        setTimeout(() => {
+          elements.btn.style.animation = '';
+        }, 300);
+      }
+    }
+
+    function setPill(el, text, cls, tooltip = '') {
+      el.textContent = text;
+      el.className = 'pill ' + (cls || '');
+      if (tooltip) {
+        el.setAttribute('data-tooltip', tooltip);
+      } else {
+        el.removeAttribute('data-tooltip');
+      }
+    }
+
+    // Check if we need to show loading state
+    function checkConnectionTimeout() {
+      if (state.lastUpdateTime && (Date.now() - state.lastUpdateTime) > CONNECTION_TIMEOUT) {
+        updateConnectionStatus(false, 'Connection timeout');
+        [elements.pillIp, elements.pillMqtt, elements.pillInput].forEach(pill => {
+          pill.classList.add('loading');
+        });
+      }
+    }
+
+    // Main refresh function
+    async function refresh() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const r = await fetch('/api/status', { 
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}${r.statusText ? ': ' + r.statusText : ''}`);
+        }
+        
+        const d = await r.json();
+        state.lastData = d;
+        
+        // Update UI
+        setButtonState(!!d.relay);
+        setPill(elements.pillIp, d.ip || 'N/A', 'info');
+        
+        // Update signal strength
+        updateSignalStrength(d.rssi);
+        
+        // MQTT status with tooltip
+        let mqttStatus, mqttClass, mqttTooltip = '';
+        if (!d.mqtt_enabled) {
+          mqttStatus = 'Disabled';
+          mqttClass = 'disabled';
+          mqttTooltip = 'MQTT is disabled in settings';
+        } else if (d.mqtt_connected) {
+          mqttStatus = 'Connected';
+          mqttClass = 'on';
+          mqttTooltip = `Cmd: ${d.cmd_topic || 'N/A'}\nState: ${d.state_topic || 'N/A'}\nDin: ${d.din_topic || 'N/A'}`;
+        } else {
+          mqttStatus = 'Disconnected';
+          mqttClass = 'off';
+          mqttTooltip = `Host: ${d.mqtt_host || 'Not configured'}\nCmd: ${d.cmd_topic || 'N/A'}`;
+        }
+        setPill(elements.pillMqtt, mqttStatus, mqttClass, mqttTooltip);
+        
+        // Input status
+        setPill(elements.pillInput,
+          d.input_pressed ? 'Active' : 'Inactive',
+          d.input_pressed ? 'on' : 'off'
+        );
+        
+        // Update connection status
+        updateConnectionStatus(true);
+        state.lastUpdateTime = new Date();
+        
+        // Remove loading class from pills
+        [elements.pillIp, elements.pillMqtt, elements.pillInput].forEach(pill => {
+          pill.classList.remove('loading');
+        });
+        
+      } catch (e) {
+        console.warn('Refresh failed:', e.message);
+        
+        if (e.name === 'AbortError') {
+          updateConnectionStatus(false, 'Request timeout');
+        } else {
+          updateConnectionStatus(false, e.message.includes('HTTP 401') ? 'Authentication required' : 'Connection lost');
+        }
+        
+        // Show loading state on pills if we haven't updated in a while
+        if (!state.lastUpdateTime || (Date.now() - state.lastUpdateTime) > 5000) {
+          [elements.pillIp, elements.pillMqtt, elements.pillInput].forEach(pill => {
+            pill.classList.add('loading');
+          });
+        }
+        
+        // Hide signal display
+        elements.signalDisplay.style.display = 'none';
+      }
+      
+      // Update last update time
+      if (state.lastUpdateTime) {
+        elements.lastUpdate.textContent = formatTimeSince(state.lastUpdateTime);
+      }
+      
+      // Check for connection timeout
+      checkConnectionTimeout();
+    }
+
+    // Toggle relay state
+    async function toggleRelay() {
+      if (state.busy) return;
+      
+      state.busy = true;
+      elements.btn.disabled = true;
+
+      // Visual feedback
+      elements.btn.style.opacity = '0.8';
+
+      const turnOn = elements.btn.classList.contains('off');
+      const action = turnOn ? 'ON' : 'OFF';
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const r = await fetch('/api/relay', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          body: 'state=' + (turnOn ? 1 : 0),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!r.ok) {
+          if (r.status === 401) {
+            throw new Error('Authentication failed');
+          }
+          throw new Error(`HTTP ${r.status}`);
+        }
+        
+        // Show success toast
+        showToast(`Relay turned ${action}`, 'success');
+        
+        // Refresh to get actual state
+        await refresh();
+        
+      } catch (error) {
+        console.error('Toggle failed:', error);
+        
+        // Visual error feedback
+        elements.btn.classList.add('error-shake');
+        setTimeout(() => {
+          elements.btn.classList.remove('error-shake');
+        }, 300);
+        
+        showToast(error.message || 'Failed to toggle relay', 'error');
+        
+        // Refresh to sync state
+        await refresh();
+        
+      } finally {
+        state.busy = false;
+        elements.btn.disabled = false;
+        elements.btn.style.opacity = '1';
+      }
+    }
+
+    // Pull to refresh
+    function handleTouchStart(e) {
+      state.touchStart = e.touches[0].clientY;
+      elements.refreshHint.classList.add('visible');
+    }
+
+    function handleTouchMove(e) {
+      if (!state.touchStart) return;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - state.touchStart;
+      
+      if (diff > 50) {
+        elements.refreshHint.style.opacity = Math.min(1, (diff - 50) / 100);
+      }
+    }
+
+    function handleTouchEnd(e) {
+      if (!state.touchStart) return;
+      
+      const diff = e.changedTouches[0].clientY - state.touchStart;
+      elements.refreshHint.classList.remove('visible');
+      elements.refreshHint.style.opacity = '';
+      
+      if (diff > 100 && window.scrollY === 0) {
+        refresh();
+        showToast('Refreshing...', 'info', 1000);
+      }
+      
+      state.touchStart = 0;
+    }
+
+    // Initialize
+    function init() {
+      // Start periodic refresh
+      refresh();
+      state.refreshInterval = setInterval(refresh, REFRESH_INTERVAL);
+      
+      // Check connection status periodically
+      setInterval(checkConnectionTimeout, 1000);
+      
+      // Add touch events for pull-to-refresh
+      document.addEventListener('touchstart', handleTouchStart, { passive: true });
+      document.addEventListener('touchmove', handleTouchMove, { passive: true });
+      document.addEventListener('touchend', handleTouchEnd, { passive: true });
+      
+      // Add click handler
+      elements.btn.addEventListener('click', toggleRelay);
+      
+      // Add keyboard support
+      elements.btn.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          toggleRelay();
+        }
+      });
+      
+      // Make button focusable
+      elements.btn.setAttribute('tabindex', '0');
+      
+      // Handle visibility change (pause refresh when tab not visible)
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (state.refreshInterval) {
+            clearInterval(state.refreshInterval);
+            state.refreshInterval = null;
+          }
+        } else {
+          if (!state.refreshInterval) {
+            refresh();
+            state.refreshInterval = setInterval(refresh, REFRESH_INTERVAL);
+          }
+        }
+      });
+      
+      // Handle online/offline events
+      window.addEventListener('online', () => {
+        showToast('Network reconnected', 'success');
+        refresh();
+      });
+      
+      window.addEventListener('offline', () => {
+        showToast('Network disconnected', 'error');
+      });
+      
+      // Show initial loading hint
+      setTimeout(() => {
+        if (!state.lastUpdateTime) {
+          elements.refreshHint.classList.add('visible');
+          setTimeout(() => {
+            elements.refreshHint.classList.remove('visible');
+          }, 3000);
+        }
+      }, 1000);
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+</body>
+</html>

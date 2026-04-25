@@ -1,0 +1,674 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Switch4Node</title>
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+    
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      background: rgba(255, 255, 255, 0.5);
+      padding: 10px 20px;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .device-badge {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-family: 'SF Mono', monospace;
+      backdrop-filter: blur(10px);
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 16px 24px;
+      margin-bottom: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .status-label {
+      color: #86868b;
+      font-weight: 500;
+    }
+    
+    .status-value {
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+    
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge.success {
+      background: rgba(52, 199, 89, 0.15);
+      color: #34c759;
+    }
+    
+    .badge.warning {
+      background: rgba(255, 149, 0, 0.15);
+      color: #ff9500;
+    }
+    
+    .badge.error {
+      background: rgba(255, 59, 48, 0.15);
+      color: #ff3b30;
+    }
+    
+    /* Relay Grid */
+    .relay-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    
+    /* Relay Card */
+    .relay-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.08),
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .relay-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+    
+    .relay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .relay-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    
+    .relay-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(142, 142, 147, 0.1);
+      color: #8e8e93;
+    }
+    
+    .relay-badge.active {
+      background: rgba(52, 199, 89, 0.15);
+      color: #34c759;
+    }
+    
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      margin: 20px 0;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #e4e4e7;
+      transition: .3s;
+      border-radius: 34px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    input:checked + .slider {
+      background: linear-gradient(135deg, #34c759, #30b753);
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    /* Input Status */
+    .input-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      font-size: 14px;
+    }
+    
+    .input-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #8e8e93;
+      transition: all 0.3s ease;
+    }
+    
+    .input-led.active {
+      background: #007aff;
+      box-shadow: 0 0 10px rgba(0, 122, 255, 0.5);
+    }
+    
+    .input-led.pressed {
+      background: #34c759;
+      box-shadow: 0 0 10px rgba(52, 199, 89, 0.5);
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+    }
+    
+    .btn:hover {
+      background: rgba(0, 122, 255, 0.15);
+    }
+    
+    .btn:active {
+      transform: scale(0.96);
+    }
+    
+    .btn.primary {
+      background: #007aff;
+      color: white;
+    }
+    
+    .btn.primary:hover {
+      background: #0056d6;
+    }
+    
+    /* MQTT Panel */
+    .mqtt-panel {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .mqtt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .mqtt-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .mqtt-topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 13px;
+      color: #86868b;
+    }
+    
+    .mqtt-topic {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: 'SF Mono', monospace;
+    }
+    
+    /* Loading States */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+      position: relative;
+    }
+    
+    .loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      border: 2px solid rgba(0, 122, 255, 0.3);
+      border-top-color: #007aff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .toast {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>Switch4Node</h1>
+      <div class="device-badge" id="deviceMdns">switchnode-xxxx.local</div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">IP Address:</span>
+        <span class="status-value" id="deviceIp">192.168.x.x</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Signal:</span>
+        <span class="status-value" id="deviceRssi">-xx dBm</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">MQTT:</span>
+        <span class="badge" id="mqttStatus">Disconnected</span>
+      </div>
+      <div class="status-item">
+        <a href="/settings" style="color: #007aff; text-decoration: none; font-weight: 500;">Settings</a>
+      </div>
+    </div>
+    
+    <!-- Relay Grid -->
+    <div class="relay-grid" id="relayGrid">
+      <!-- Relay cards will be generated by JavaScript -->
+    </div>
+    
+    <!-- MQTT Panel -->
+    <!-- <div class="mqtt-panel">
+      <div class="mqtt-header">
+        <span class="mqtt-title">MQTT Configuration</span>
+        <span class="badge" id="mqttDetailStatus">Disabled</span>
+      </div>
+      <div class="mqtt-topics" id="mqttTopics">
+        <span class="mqtt-topic">Command: not configured</span>
+        <span class="mqtt-topic">State: not configured</span>
+      </div>
+    </div> -->
+  </div>
+  
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">Message</div>
+  
+  <script>
+    // DOM Elements
+    const relayGrid = document.getElementById('relayGrid');
+    const deviceMdns = document.getElementById('deviceMdns');
+    const deviceIp = document.getElementById('deviceIp');
+    const deviceRssi = document.getElementById('deviceRssi');
+    const mqttStatus = document.getElementById('mqttStatus');
+    const mqttDetailStatus = document.getElementById('mqttDetailStatus');
+    const mqttTopics = document.getElementById('mqttTopics');
+    const toast = document.getElementById('toast');
+    
+    // State
+    let relays = [false, false, false, false];
+    let inputs = [false, false, false, false];
+    let mqttEnabled = false;
+    let mqttConnected = false;
+    let cmdTopic = '';
+    let stateTopic = '';
+    
+    // Show toast message
+    function showToast(message, duration = 3000) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
+    
+    // Update relay card UI
+    function updateRelayCard(index) {
+      const card = document.getElementById(`relay-${index}`);
+      if (!card) return;
+      
+      const toggle = card.querySelector('.relay-toggle');
+      const badge = card.querySelector('.relay-badge');
+      const inputLed = card.querySelector('.input-led');
+      
+      if (toggle) toggle.checked = relays[index];
+      if (badge) {
+        badge.textContent = relays[index] ? 'ON' : 'OFF';
+        badge.className = `relay-badge ${relays[index] ? 'active' : ''}`;
+      }
+      if (inputLed) {
+        inputLed.className = `input-led ${inputs[index] ? 'pressed' : ''}`;
+      }
+    }
+    
+    // Render relay grid
+    function renderRelayGrid() {
+      let html = '';
+      for (let i = 0; i < 4; i++) {
+        const relayNum = i + 1;
+        html += `
+          <div class="relay-card" id="relay-${i}">
+            <div class="relay-header">
+              <span class="relay-title">Switch ${relayNum}</span>
+              <span class="relay-badge ${relays[i] ? 'active' : ''}">${relays[i] ? 'ON' : 'OFF'}</span>
+            </div>
+            
+            <label class="switch">
+              <input type="checkbox" class="relay-toggle" data-relay="${relayNum}" ${relays[i] ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+            
+            <div class="input-status">
+              <span class="input-led ${inputs[i] ? 'pressed' : ''}"></span>
+              <span>Input ${relayNum}: <strong>${inputs[i] ? 'PRESSED' : 'OPEN'}</strong></span>
+            </div>
+            
+            <div class="action-buttons">
+              <button class="btn" onclick="setRelay(${relayNum}, true)">Turn ON</button>
+              <button class="btn" onclick="setRelay(${relayNum}, false)">Turn OFF</button>
+            </div>
+          </div>
+        `;
+      }
+      relayGrid.innerHTML = html;
+      
+      // Add event listeners to toggles
+      document.querySelectorAll('.relay-toggle').forEach(toggle => {
+        toggle.addEventListener('change', (e) => {
+          const relay = parseInt(e.target.dataset.relay);
+          setRelay(relay, e.target.checked);
+        });
+      });
+    }
+    
+    // Fetch status from device
+    async function fetchStatus() {
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        
+        if (data.ok) {
+          // Update device info
+          deviceMdns.textContent = data.mdns || 'switchnode-xxxx.local';
+          deviceIp.textContent = data.ip || '192.168.x.x';
+          deviceRssi.textContent = data.rssi ? data.rssi + ' dBm' : 'N/A';
+          
+          // Update relays
+          if (data.relays && Array.isArray(data.relays)) {
+            relays = data.relays;
+            for (let i = 0; i < 4; i++) {
+              updateRelayCard(i);
+            }
+          }
+          
+          // Update inputs
+          if (data.inputs && Array.isArray(data.inputs)) {
+            inputs = data.inputs;
+            for (let i = 0; i < 4; i++) {
+              updateRelayCard(i);
+            }
+          }
+          
+          // Update MQTT status
+          mqttEnabled = data.mqtt_enabled || false;
+          mqttConnected = data.mqtt_connected || false;
+          cmdTopic = data.cmd_topic || '';
+          stateTopic = data.state_topic || '';
+          
+          updateMQTTStatus();
+        }
+      } catch (error) {
+        console.error('Failed to fetch status:', error);
+      }
+    }
+    
+    // Update MQTT status UI
+    function updateMQTTStatus() {
+      if (!mqttEnabled) {
+        mqttStatus.textContent = 'Disabled';
+        mqttStatus.className = 'badge warning';
+        mqttDetailStatus.textContent = 'Disabled';
+        mqttDetailStatus.className = 'badge warning';
+      } else if (mqttConnected) {
+        mqttStatus.textContent = 'Connected';
+        mqttStatus.className = 'badge success';
+        mqttDetailStatus.textContent = 'Connected';
+        mqttDetailStatus.className = 'badge success';
+      } else {
+        mqttStatus.textContent = 'Disconnected';
+        mqttStatus.className = 'badge error';
+        mqttDetailStatus.textContent = 'Disconnected';
+        mqttDetailStatus.className = 'badge error';
+      }
+      
+      mqttTopics.innerHTML = `
+        <span class="mqtt-topic">Command: ${cmdTopic || 'not configured'}</span>
+        <span class="mqtt-topic">State: ${stateTopic || 'not configured'}</span>
+      `;
+    }
+    
+    // Set individual relay
+    async function setRelay(relay, state) {
+      const formData = new URLSearchParams();
+      formData.append('relay', relay);
+      formData.append('state', state ? 'on' : 'off');
+      
+      try {
+        const response = await fetch('/api/relay', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString()
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          relays[relay - 1] = state;
+          updateRelayCard(relay - 1);
+          showToast(`Relay ${relay} turned ${state ? 'ON' : 'OFF'}`);
+        } else {
+          showToast('Failed to control relay', 3000);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('Connection error', 3000);
+      }
+    }
+    
+    // Set all relays
+    async function setAllRelays(state) {
+      const states = {};
+      for (let i = 1; i <= 4; i++) {
+        states[i] = state ? 'ON' : 'OFF';
+      }
+      
+      const formData = new URLSearchParams();
+      formData.append('states', JSON.stringify(states));
+      
+      try {
+        const response = await fetch('/api/relays', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString()
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+          for (let i = 0; i < 4; i++) {
+            relays[i] = state;
+            updateRelayCard(i);
+          }
+          showToast(`All relays turned ${state ? 'ON' : 'OFF'}`);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('Connection error', 3000);
+      }
+    }
+    
+    // Add global all-on/all-off buttons
+    function addGlobalControls() {
+      const statusBar = document.querySelector('.status-bar');
+      const controlsDiv = document.createElement('div');
+      controlsDiv.className = 'status-item';
+      controlsDiv.innerHTML = `
+        <button class="btn" style="padding: 8px 16px;" onclick="setAllRelays(true)">All ON</button>
+        <button class="btn" style="padding: 8px 16px;" onclick="setAllRelays(false)">All OFF</button>
+      `;
+      statusBar.appendChild(controlsDiv);
+    }
+    
+    // Initialize
+    window.addEventListener('load', () => {
+      renderRelayGrid();
+      addGlobalControls();
+      fetchStatus();
+      
+      // Auto-refresh every 2 seconds
+      setInterval(fetchStatus, 2000);
+    });
+  </script>
+</body>
+</html>

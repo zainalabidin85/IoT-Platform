@@ -1,0 +1,621 @@
+/* Apple-Inspired CSS for HydroNode */
+:root {
+    --background: #f5f5f7;
+    --card-background: rgba(255, 255, 255, 0.8);
+    --card-background-solid: #ffffff;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --text-tertiary: #6e6e73;
+    --accent-blue: #0071e3;
+    --accent-green: #34c759;
+    --accent-red: #ff3b30;
+    --accent-orange: #ff9500;
+    --accent-purple: #af52de;
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    --blur-intensity: blur(20px);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    margin: 0;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: var(--blur-intensity);
+    -webkit-backdrop-filter: var(--blur-intensity);
+    border-radius: 32px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Status Bar */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.status-left, .status-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    color: var(--accent-blue);
+    font-size: 8px;
+}
+
+.wifi-indicator, .mqtt-indicator {
+    font-size: 12px;
+}
+
+.wifi-indicator.active, .mqtt-indicator.active {
+    color: var(--accent-green);
+}
+
+/* Main Content */
+.main-content {
+    padding: 24px;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.hero-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #007aff, #0056d6);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+}
+
+.liquid-drop {
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+
+.hero-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Sensor Cards */
+.sensors-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.sensor-card {
+    background: var(--card-background);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.sensor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.card-icon {
+    font-size: 20px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.card-unit {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.voltage {
+    font-family: 'SF Mono', 'Inter', monospace;
+}
+
+.cal-badge {
+    background: rgba(52, 199, 89, 0.1);
+    color: var(--accent-green);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.water-progress-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    margin: 12px 0;
+    overflow: hidden;
+}
+
+.water-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #34c759, #30b0c0);
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+    position: relative;
+    animation: shimmer 2s infinite;
+}
+
+/* ✅ Temperature Card theme (small accent) */
+.temp-card .card-icon {
+    filter: drop-shadow(0 4px 10px rgba(175, 82, 222, 0.35));
+}
+.temp-card .cal-badge {
+    background: rgba(175, 82, 222, 0.12);
+    color: var(--accent-purple);
+}
+
+/* ✅ Value update animation class (used in app.js) */
+.value-update {
+    animation: valuePulse 0.2s ease;
+}
+
+@keyframes valuePulse {
+    0%   { transform: scale(1);   opacity: 1; }
+    50%  { transform: scale(1.02); opacity: 0.85; }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Control Center */
+.control-center {
+    background: var(--card-background-solid);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.control-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.control-button {
+    background: none;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+}
+
+.control-button:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.button-icon {
+    font-size: 24px;
+}
+
+.button-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Navigation Bar */
+.nav-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-tertiary);
+}
+
+.nav-item.active {
+    color: var(--accent-blue);
+}
+
+.nav-icon {
+    font-size: 20px;
+}
+
+.nav-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+}
+
+.modal.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.close-button:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+/* Calibration Options */
+.cal-option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.cal-option:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.cal-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #007aff, #0056d6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.cal-info {
+    flex: 1;
+}
+
+.cal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.cal-description {
+    font-size: 14px;
+    color: var(--text-tertiary);
+}
+
+.cal-chevron {
+    font-size: 24px;
+    color: var(--text-tertiary);
+}
+
+/* Settings */
+.setting-group {
+    margin-bottom: 24px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.setting-row label {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.setting-row input[type="text"],
+.setting-row input[type="number"],
+.setting-row input[type="password"],
+.setting-row select {
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    width: 200px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* Toggle Switch (iOS Style) */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 32px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e9e9ed;
+    transition: .2s;
+    border-radius: 32px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 28px;
+    width: 28px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--accent-green);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Save Button */
+.save-button {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+}
+
+.save-button:hover {
+    background: #0077ed;
+    transform: scale(0.98);
+}
+
+/* Connection Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.status-dot.online {
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+}
+
+.status-dot.offline {
+    background: var(--accent-red);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .container { border-radius: 0; }
+
+    .sensors-grid { grid-template-columns: 1fr; }
+
+    .control-grid { grid-template-columns: repeat(2, 1fr); }
+}

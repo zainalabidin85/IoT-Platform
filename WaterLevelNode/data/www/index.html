@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <title>Water Level Node</title>
+
+  <style>
+    :root{
+      --bg:#f5f7fa;
+      --panel:rgba(255,255,255,0.95);
+      --panel2:rgba(255,255,255,0.85);
+      --border:rgba(0,0,0,0.08);
+      --text:#1d1d1f;
+      --muted:#86868b;
+      --accent:#007aff;
+      --accent-light:#0056d6;
+      --ok:#34c759;
+      --bad:#ff3b30;
+      --warn:#ff9500;
+      --water-blue:#007aff;
+      --water-dark:#0056d6;
+      --shadow:0 12px 30px rgba(0,0,0,.08);
+      --r:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100%;
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+      overflow-x: hidden;
+    }
+
+    .wrap{max-width:1050px; margin:0 auto; padding:18px 14px 40px}
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:14px 14px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.9);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      position:sticky; top:10px; z-index:5;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
+      min-width: 220px;
+    }
+    .brand .t{font-weight:900; letter-spacing:.2px; font-size:16px}
+    .brand .s{color:var(--muted); font-size:12px}
+    .pills{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.04);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill b{color:var(--text)}
+    .pill.ok{border-color:rgba(54,193,123,.35); color:#c8ffe4}
+    .pill.bad{border-color:rgba(255,90,90,.35); color:#ffd1d1}
+    .pill.warn{border-color:rgba(255,204,102,.35); color:#ffe8bf}
+
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+    }
+    @media (max-width: 920px){
+      .grid{grid-template-columns:1fr}
+      .brand{min-width: unset}
+    }
+
+    .card{
+      border:1px solid var(--border);
+      border-radius:var(--r);
+      background:rgba(255,255,255,0.95);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+      border-bottom:1px solid rgba(0,0,0,.06);
+      background:rgba(0,0,0,.02);
+    }
+    .card .hd h2{
+      margin:0; font-size:14px; letter-spacing:.2px; font-weight:900;
+    }
+    .card .hd .hint{margin:0; color:var(--muted); font-size:12px}
+    .card .bd{padding:14px}
+
+    .kv{
+      display:grid;
+      grid-template-columns: 150px 1fr;
+      gap:8px 10px;
+      align-items:center;
+    }
+    .k{color:var(--muted); font-size:12px}
+    .v{font-weight:800; font-size:13px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    .sep{height:1px; background:rgba(0,0,0,.06); margin:12px 0}
+
+    .liveRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 520px){
+      .liveRow{grid-template-columns:1fr}
+    }
+    .metric{
+      border:1px solid rgba(0,0,0,.06);
+      background:rgba(0,0,0,.03);
+      border-radius:16px;
+      padding:12px 12px;
+      min-height:72px;
+    }
+    .metric .label{font-size:12px; color:var(--muted)}
+    .metric .value{
+      margin-top:6px;
+      font-size:22px;
+      font-weight:950;
+      letter-spacing:.2px;
+    }
+    .metric .sub{margin-top:4px; font-size:12px; color:var(--muted)}
+    .bigLevel{font-size:30px}
+    .quality{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.04);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px; background:#c7c7cc;
+      box-shadow:0 0 0 3px rgba(0,0,0,.04) inset;
+    }
+    .dot.ok{background:var(--ok)}
+    .dot.bad{background:var(--bad)}
+    .dot.warn{background:var(--warn)}
+
+    /* Water Tank Visualization */
+    .waterTank {
+      width: 100%;
+      height: 180px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0, 122, 255, 0.04);
+      position: relative;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    
+    .waterFill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, var(--water-dark), var(--water-blue));
+      transition: height 1s ease-out;
+      border-radius: 0 0 10px 10px;
+    }
+    
+    .waterMarkers {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 15px;
+      pointer-events: none;
+    }
+    
+    .waterMarker {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .waterMarkerLine {
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      position: absolute;
+      left: 0;
+    }
+    
+    .currentLevel {
+      position: absolute;
+      right: -60px;
+      background: var(--accent);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+      z-index: 2;
+    }
+    
+    .currentLevel::after {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 8px solid var(--accent);
+    }
+
+    canvas{width:100%; height:140px; display:block; border-radius:16px; border:1px solid rgba(0,0,0,.06); background:rgba(0,0,0,.02)}
+    .small{font-size:12px; color:var(--muted); line-height:1.45}
+
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid #d2d2d7;
+      background:rgba(255,255,255,0.9);
+      color:var(--text);
+      outline:none;
+    }
+    input:focus, select:focus{border-color:rgba(0,122,255,.9); box-shadow:0 0 0 3px rgba(0,122,255,.15)}
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 520px){
+      .formGrid{grid-template-columns:1fr}
+    }
+    .row3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 720px){
+      .row3{grid-template-columns:1fr}
+    }
+    .btnRow{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:11px 12px;
+      font-weight:950;
+      cursor:pointer;
+      color:white;
+      background:var(--accent);
+      flex:1 1 180px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: var(--accent-light);
+      transform: translateY(-1px);
+    }
+    button.secondary{
+      background:rgba(0,0,0,.04);
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+    button.secondary:hover {
+      background: rgba(0,0,0,.08);
+    }
+    button.danger{
+      background:var(--bad);
+    }
+    button.danger:hover {
+      background: #ff7373;
+    }
+    button:disabled{opacity:.55; cursor:not-allowed; transform: none !important;}
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.72);
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      box-shadow:var(--shadow);
+      font-size:13px;
+      display:none;
+      max-width:min(880px, 92vw);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      z-index: 1000;
+    }
+
+    .links{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    a{color:var(--accent); text-decoration:none; font-weight:900}
+    a:hover{text-decoration:underline}
+    .mutedLink{color:var(--muted); font-weight:800}
+    .foot{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.04);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:850;
+    }
+    
+    /* Unit selector */
+    .unitSelector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .unitBtn {
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .unitBtn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .unitBtn:hover:not(.active) {
+      background: rgba(0,0,0,0.08);
+    }
+    
+    /* Status indicators */
+    .statusIndicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    
+    .statusIndicator .indicatorDot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    
+    .statusIndicator.ok .indicatorDot { background: var(--ok); }
+    .statusIndicator.warn .indicatorDot { background: var(--warn); }
+    .statusIndicator.bad .indicatorDot { background: var(--bad); }
+    
+    /* Alert indicators */
+    .alertLow, .alertHigh {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="t">Water Level Node</div>
+        <div class="s" id="subtitle">—</div>
+      </div>
+      <div class="pills">
+        <div class="pill" id="pill_wifi"><b>Wi-Fi</b> —</div>
+        <div class="pill" id="pill_ip"><b>IP</b> —</div>
+        <div class="pill" id="pill_mqtt"><b>MQTT</b> —</div>
+        <div class="pill" id="pill_fs"><b>FS</b> —</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: live + visualization + calibration -->
+      <div class="col">
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>Water Level Monitoring</h2>
+              <p class="hint">Updates every 1s (from <span class="mono">/api/level</span>)</p>
+            </div>
+            <span class="quality" id="calBadge">
+              <span class="dot" id="calDot"></span>
+              <span id="calText">CAL —</span>
+            </span>
+          </div>
+          <div class="bd">
+            <!-- Unit Selector -->
+            <div class="unitSelector" id="unitSelector">
+              <div class="unitBtn active" data-unit="0">Percent (%)</div>
+              <div class="unitBtn" data-unit="1">Voltage (V)</div>
+              <div class="unitBtn" data-unit="2">ADC Raw</div>
+              <div class="unitBtn" data-unit="3">Custom Units</div>
+            </div>
+            
+            <div class="liveRow">
+              <div class="metric">
+                <div class="label">Current Level</div>
+                <div class="value bigLevel" id="m_level">—</div>
+                <div class="sub" id="m_level_sub">—</div>
+              </div>
+              <div class="metric">
+                <div class="label">Sensor Voltage</div>
+                <div class="value" id="m_voltage">—</div>
+                <div class="sub">V (0-5V range)</div>
+              </div>
+            </div>
+
+            <!-- Water Tank Visualization -->
+            <div class="waterTank" id="waterTank">
+              <div class="waterFill" id="waterFill"></div>
+              <div class="waterMarkers" id="waterMarkers">
+                <!-- Markers will be added by JavaScript -->
+              </div>
+              <div class="currentLevel" id="currentLevelIndicator">—</div>
+            </div>
+
+            <div class="sep"></div>
+
+            <canvas id="chart" width="1000" height="260" aria-label="Voltage trend over time"></canvas>
+            <div class="foot">
+              <div class="badge">Avg(10s): <span class="mono" id="m_avg">—</span> V</div>
+              <div class="badge">Std: <span class="mono" id="m_std">—</span> V</div>
+              <div class="badge">ADC: <span class="mono" id="m_adc">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>Calibration</h2>
+              <p class="hint">Calibrate empty and full points for accurate readings</p>
+            </div>
+            <button class="danger" id="btnClearCal" type="button" style="flex:0 0 auto; padding:10px 12px; border-radius:14px">
+              Clear Cal
+            </button>
+          </div>
+          <div class="bd">
+            <div class="kv">
+              <div class="k">Calibration</div>
+              <div class="v">
+                <span class="statusIndicator" id="calStatus">
+                  <span class="indicatorDot"></span>
+                  <span id="calStatusText">—</span>
+                </span>
+              </div>
+              <div class="k">Current Unit</div>
+              <div class="v" id="currentUnitDisplay">—</div>
+              <div class="k">Custom Max</div>
+              <div class="v" id="customMaxDisplay">—</div>
+            </div>
+            <div class="sep"></div>
+            <div class="row3">
+              <div class="metric">
+                <div class="label">Empty Point</div>
+                <div class="value" id="cal_empty">—</div>
+                <div class="sub" id="cal_empty_sub">—</div>
+              </div>
+              <div class="metric">
+                <div class="label">Full Point</div>
+                <div class="value" id="cal_full">—</div>
+                <div class="sub" id="cal_full_sub">—</div>
+              </div>
+              <div class="metric">
+                <div class="label">Hint</div>
+                <div class="value" style="font-size:14px; font-weight:900; margin-top:8px">Use LCD Buttons</div>
+                <div class="sub">Calibrate empty then full levels.</div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div class="small">
+              Note: Calibrate by setting sensor to empty (0%) position, capture voltage, then set to full (100%) position and capture. System will calculate linear relationship.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: device + unit settings + mqtt -->
+      <div class="col">
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>Device & Settings</h2>
+              <p class="hint">From <span class="mono">/api/status</span></p>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="kv">
+              <div class="k">Device Name</div><div class="v" id="d_name">—</div>
+              <div class="k">Firmware</div><div class="v mono" id="d_fw">—</div>
+              <div class="k">Uptime</div><div class="v" id="d_up">—</div>
+              <div class="k">Wi-Fi Mode</div><div class="v" id="d_wmode">—</div>
+              <div class="k">SSID</div><div class="v" id="d_ssid">—</div>
+              <div class="k">RSSI</div><div class="v" id="d_rssi">—</div>
+              <div class="k">IP Address</div><div class="v mono" id="d_ip">—</div>
+              <div class="k">FS Used</div><div class="v" id="d_fs">—</div>
+            </div>
+
+            <div class="sep"></div>
+
+            <!-- Unit Settings Form -->
+            <div class="formGrid">
+              <div>
+                <div class="k" style="margin:2px 0 6px">Display Unit</div>
+                <select id="display_unit">
+                  <option value="0">Percent (%)</option>
+                  <option value="1">Voltage (V)</option>
+                  <option value="2">ADC Raw</option>
+                  <option value="3">Custom Units</option>
+                </select>
+              </div>
+              <div>
+                <div class="k" style="margin:2px 0 6px">Custom Max Value</div>
+                <input id="custom_max" type="number" step="1" min="10" max="10000" value="100" placeholder="e.g., 50 for 50cm">
+              </div>
+            </div>
+
+            <div class="btnRow">
+              <button type="button" id="btnSaveUnit">Save Unit Settings</button>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="links">
+              <a href="/setup">Wi-Fi Setup</a>
+              <a href="/files">File Manager</a>
+            </div>
+
+            <div class="small" style="margin-top:10px">
+              Note: file operations (<span class="mono">/files</span>, <span class="mono">/upload</span>, <span class="mono">/list</span>)
+              are allowed only in AP mode (as enforced in firmware).
+            </div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>Platform Connection</h2>
+              <p class="hint">Provision via topic + API key from iot.unitani.com</p>
+            </div>
+            <span class="quality" id="provBadge">
+              <span class="dot" id="provDot"></span>
+              <span id="provText">—</span>
+            </span>
+          </div>
+          <div class="bd">
+
+            <!-- Current status -->
+            <div class="kv" id="provStatus" style="display:none">
+              <div class="k">Topic</div><div class="v mono" id="prov_topic">—</div>
+              <div class="k">MQTT</div><div class="v" id="prov_conn">—</div>
+            </div>
+
+            <div class="sep" id="provSep" style="display:none"></div>
+
+            <!-- Provision form -->
+            <div id="provForm">
+              <div class="k" style="margin:0 0 8px">Connect to Platform</div>
+              <div class="formGrid">
+                <div>
+                  <div class="k" style="margin:2px 0 6px">Topic</div>
+                  <input id="prov_input_topic" placeholder="e.g. farm-waterlevel1">
+                </div>
+                <div>
+                  <div class="k" style="margin:2px 0 6px">API Key</div>
+                  <input id="prov_input_apikey" type="password" placeholder="Paste from dashboard">
+                </div>
+              </div>
+              <div class="btnRow">
+                <button type="button" id="btnProvision">Connect to Platform</button>
+              </div>
+              <div id="provMsg" style="margin-top:10px; padding:10px; border-radius:10px; display:none; font-size:13px"></div>
+            </div>
+
+            <div class="sep"></div>
+
+            <!-- Publish settings (always shown) -->
+            <div class="k" style="margin:0 0 10px">Publish Settings</div>
+            <div class="formGrid">
+              <div>
+                <div class="k" style="margin:2px 0 6px">Publish Period (ms)</div>
+                <input id="mq_period" placeholder="1000" inputmode="numeric">
+              </div>
+              <div style="display:flex; align-items:flex-end">
+                <div class="metric" style="padding:10px 12px; width:100%">
+                  <label style="display:flex; gap:10px; align-items:center; cursor:pointer">
+                    <input type="checkbox" id="mq_retain" style="width:18px; height:18px; margin:0">
+                    <span style="font-weight:900; font-size:13px">Retain Messages</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="btnRow">
+              <button type="button" id="btnSaveMqtt">Save Publish Settings</button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">—</div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // --------------------------
+    // Small utilities
+    // --------------------------
+    function fmtUptime(sec){
+      sec = Math.max(0, sec|0);
+      const d = Math.floor(sec / 86400); sec %= 86400;
+      const h = Math.floor(sec / 3600);  sec %= 3600;
+      const m = Math.floor(sec / 60);    const s = sec % 60;
+      return (d? (d+"d ") : "") + String(h).padStart(2,"0")+":" + String(m).padStart(2,"0")+":" + String(s).padStart(2,"0");
+    }
+    
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      clearTimeout(toast._tm);
+      toast._tm = setTimeout(()=> t.style.display="none", 2600);
+    }
+    
+    async function fetchJSON(url, timeoutMs=2500){
+      const ctrl = new AbortController();
+      const tm = setTimeout(()=>ctrl.abort(), timeoutMs);
+      try{
+        const r = await fetch(url, {cache:"no-store", signal: ctrl.signal});
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        return await r.json();
+      } finally {
+        clearTimeout(tm);
+      }
+    }
+    
+    async function postForm(url, fieldsObj){
+      const fd = new FormData();
+      for (const [k,v] of Object.entries(fieldsObj)) fd.append(k, v);
+      const r = await fetch(url, {method:"POST", body: fd});
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r;
+    }
+
+    // --------------------------
+    // Water Tank Visualization
+    // --------------------------
+    function updateWaterTank(levelPercent, unit, customValue = null) {
+      const tank = $("waterTank");
+      const fill = $("waterFill");
+      const markers = $("waterMarkers");
+      const indicator = $("currentLevelIndicator");
+      
+      // Set water fill height (0-100% of tank)
+      let fillPercent = 0;
+      let displayValue = "";
+      let unitSymbol = "";
+      
+      if (unit === 0) { // Percent
+        fillPercent = Math.min(100, Math.max(0, levelPercent));
+        displayValue = fillPercent.toFixed(1) + "%";
+        unitSymbol = "%";
+      } else if (unit === 1 && customValue !== null) { // Voltage
+        // Convert voltage to percentage for visualization (assuming 0-5V)
+        fillPercent = Math.min(100, Math.max(0, (customValue / 5.0) * 100));
+        displayValue = customValue.toFixed(2) + "V";
+        unitSymbol = "V";
+      } else if (unit === 2 && customValue !== null) { // ADC Raw
+        // Convert ADC to percentage for visualization (0-4095)
+        fillPercent = Math.min(100, Math.max(0, (customValue / 4095) * 100));
+        displayValue = Math.round(customValue) + " raw";
+        unitSymbol = "raw";
+      } else if (unit === 3 && customValue !== null) { // Custom units
+        // Need max value from settings
+        const maxValue = parseFloat($("custom_max").value) || 100;
+        fillPercent = Math.min(100, Math.max(0, (customValue / maxValue) * 100));
+        displayValue = customValue.toFixed(1) + " units";
+        unitSymbol = "units";
+      }
+      
+      // Update water fill
+      fill.style.height = `${fillPercent}%`;
+      
+      // Update current level indicator position
+      const indicatorTop = 100 - fillPercent;
+      indicator.style.top = `${indicatorTop}%`;
+      indicator.textContent = displayValue;
+      
+      // Add/update markers if not present
+      if (markers.children.length === 0) {
+        const markerValues = [100, 75, 50, 25, 0];
+        markerValues.forEach(value => {
+          const marker = document.createElement('div');
+          marker.className = 'waterMarker';
+          marker.innerHTML = `
+            <span>${value}${unitSymbol}</span>
+            <span>${value === 100 ? 'FULL' : value === 0 ? 'EMPTY' : ''}</span>
+          `;
+          marker.style.position = 'absolute';
+          marker.style.top = `${100 - value}%`;
+          markers.appendChild(marker);
+          
+          // Add horizontal line
+          const line = document.createElement('div');
+          line.className = 'waterMarkerLine';
+          line.style.top = `${100 - value}%`;
+          markers.appendChild(line);
+        });
+      }
+      
+      // Add visual alert classes for low/high levels
+      fill.classList.remove('alertLow', 'alertHigh');
+      if (fillPercent < 10) {
+        fill.classList.add('alertLow');
+      } else if (fillPercent > 90) {
+        fill.classList.add('alertHigh');
+      }
+    }
+
+    // --------------------------
+    // Trend chart (voltage)
+    // --------------------------
+    const buf = {
+      v: [],
+      t: [],
+      max: 80,
+    };
+
+    function pushPoint(v, tsMs){
+      if (typeof v !== "number" || !isFinite(v)) return;
+      buf.v.push(v);
+      buf.t.push(tsMs || Date.now());
+      if (buf.v.length > buf.max){
+        buf.v.shift(); buf.t.shift();
+      }
+    }
+
+    function drawChart(){
+      const c = $("chart");
+      const ctx = c.getContext("2d");
+      const W = c.width, H = c.height;
+      ctx.clearRect(0,0,W,H);
+
+      // Background grid
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(0,0,0,0.08)";
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
+
+      const pad = 22;
+      const x0 = pad, y0 = pad, x1 = W - pad, y1 = H - pad;
+
+      // Box
+      ctx.strokeRect(x0, y0, x1-x0, y1-y0);
+
+      // Horizontal grid
+      for (let i=1;i<=3;i++){
+        const y = y0 + (i*(y1-y0)/4);
+        ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+      }
+
+      if (buf.v.length < 2) return;
+
+      const vMin = Math.min(...buf.v);
+      const vMax = Math.max(...buf.v);
+      const span = Math.max(0.001, vMax - vMin);
+      const padV = span * 0.12;
+
+      const lo = vMin - padV;
+      const hi = vMax + padV;
+
+      const N = buf.v.length;
+      ctx.strokeStyle = "rgba(0,122,255,0.9)";
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      for (let i=0;i<N;i++){
+        const x = x0 + (i*(x1-x0)/(N-1));
+        const vv = buf.v[i];
+        const y = y1 - ((vv - lo) / (hi - lo)) * (y1 - y0);
+        if (i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+
+      // Last point
+      const lastX = x1;
+      const lastV = buf.v[N-1];
+      const lastY = y1 - ((lastV - lo) / (hi - lo)) * (y1 - y0);
+      ctx.fillStyle = "rgba(0,122,255,0.9)";
+      ctx.beginPath(); ctx.arc(lastX,lastY,4,0,Math.PI*2); ctx.fill();
+
+      // Labels
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.font = "20px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+      ctx.fillText("V", x0+8, y0+20);
+
+      ctx.font = "18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+      ctx.fillText(hi.toFixed(2), x0+8, y0+44);
+      ctx.fillText(lo.toFixed(2), x0+8, y1-10);
+    }
+
+    // --------------------------
+    // UI update functions
+    // --------------------------
+    function setCalBadge(quality, valid){
+      const dot = $("calDot");
+      const txt = $("calText");
+      
+      let cls = "dot";
+      let label = "CAL —";
+      
+      if (!valid){
+        cls += " bad";
+        label = "CAL NONE";
+      } else if (quality === "OK"){
+        cls += " ok";
+        label = "CAL OK";
+      } else if (quality === "WEAK"){
+        cls += " warn";
+        label = "CAL WEAK";
+      } else {
+        cls += " warn";
+        label = "CAL ?";
+      }
+      dot.className = cls;
+      txt.textContent = label;
+      
+      // Update status indicator
+      const statusIndicator = $("calStatus");
+      const statusText = $("calStatusText");
+      
+      statusIndicator.className = "statusIndicator";
+      if (!valid) {
+        statusIndicator.classList.add("bad");
+        statusText.textContent = "Not Calibrated";
+      } else if (quality === "OK") {
+        statusIndicator.classList.add("ok");
+        statusText.textContent = "Calibrated (Good)";
+      } else {
+        statusIndicator.classList.add("warn");
+        statusText.textContent = "Calibrated (Weak)";
+      }
+    }
+
+    function setPills(st){
+      // Wi-Fi pill
+      const mode = st?.wifi?.mode || "—";
+      const connected = !!st?.wifi?.connected;
+      const ssid = (st?.wifi?.ssid || "").trim();
+      const rssi = (typeof st?.wifi?.rssi === "number") ? st.wifi.rssi : null;
+      const ip = (st?.wifi?.ip || "—").trim() || "—";
+      
+      const wifiPill = $("pill_wifi");
+      wifiPill.className = "pill " + (connected ? "ok" : (mode === "AP" ? "warn" : "bad"));
+      wifiPill.innerHTML = "<b>Wi-Fi</b> " + (connected ? ("STA (" + (ssid || "—") + ")") : mode) + (rssi !== null ? (" · " + rssi + " dBm") : "");
+      
+      const ipPill = $("pill_ip");
+      ipPill.className = "pill " + (connected ? "ok" : (mode === "AP" ? "warn" : ""));
+      ipPill.innerHTML = "<b>IP</b> " + ip;
+      
+      // MQTT pill
+      const mq = st?.mqtt;
+      const mqttPill = $("pill_mqtt");
+      if (mq){
+        const mqOk = !!mq.connected;
+        const mqEn = !!mq.enabled;
+        mqttPill.className = "pill " + (mqEn ? (mqOk ? "ok" : "warn") : "");
+        mqttPill.innerHTML = "<b>MQTT</b> " + (mqEn ? (mqOk ? "Connected" : "Enabled") : "Off");
+      } else {
+        mqttPill.className = "pill";
+        mqttPill.innerHTML = "<b>MQTT</b> N/A";
+      }
+      
+      // FS pill
+      const used = st?.fs?.used ?? null;
+      const total = st?.fs?.total ?? null;
+      const fsPill = $("pill_fs");
+      if (typeof used === "number" && typeof total === "number" && total > 0){
+        const pct = Math.round((used/total)*100);
+        fsPill.className = "pill";
+        fsPill.innerHTML = "<b>FS</b> " + pct + "%";
+      } else {
+        fsPill.className = "pill";
+        fsPill.innerHTML = "<b>FS</b> —";
+      }
+    }
+
+    function renderDevice(st){
+      const devName = st?.device?.name || "—";
+      const fw = st?.device?.fw || "—";
+      const up = st?.device?.uptime_s ?? null;
+      
+      $("d_name").textContent = devName;
+      $("d_fw").textContent = fw;
+      $("d_up").textContent = (typeof up === "number") ? fmtUptime(up) : "—";
+      
+      const mode = st?.wifi?.mode || "—";
+      const connected = !!st?.wifi?.connected;
+      $("d_wmode").textContent = mode + (connected ? " (connected)" : "");
+      $("d_ssid").textContent = st?.wifi?.ssid || "—";
+      const rssi = st?.wifi?.rssi;
+      $("d_rssi").textContent = (typeof rssi === "number") ? (rssi + " dBm") : "—";
+      $("d_ip").textContent = st?.wifi?.ip || "—";
+      
+      const used = st?.fs?.used ?? null;
+      const total = st?.fs?.total ?? null;
+      if (typeof used === "number" && typeof total === "number"){
+        $("d_fs").textContent = (used/1024).toFixed(1) + " KB / " + (total/1024).toFixed(1) + " KB";
+      } else {
+        $("d_fs").textContent = "—";
+      }
+      
+      $("subtitle").textContent = devName + " · FW " + fw;
+      setPills(st);
+      
+      // Update unit info
+      const currentUnit = st?.cal?.current_unit ?? 0;
+      const customMax = st?.cal?.custom_max ?? 100;
+      
+      $("currentUnitDisplay").textContent = getUnitName(currentUnit);
+      $("customMaxDisplay").textContent = currentUnit === 3 ? customMax.toFixed(1) : "N/A";
+      
+      // Set unit selector
+      document.querySelectorAll('.unitBtn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.unit) === currentUnit) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // Set display unit dropdown
+      $("display_unit").value = currentUnit;
+      $("custom_max").value = customMax;
+      $("custom_max").disabled = currentUnit !== 3;
+      
+      // calibration badge from status
+      const valid = !!st?.cal?.valid;
+      const quality = st?.cal?.quality || "NONE";
+      setCalBadge(quality, valid);
+      
+      // Platform connection badge
+      if (st?.mqtt){
+        const en  = !!st.mqtt.enabled;
+        const con = !!st.mqtt.connected;
+        const err = st.mqtt.last_error || "";
+        const topic = st?.mqtt?.topic || $("prov_topic").textContent;
+        setProvBadge(en, con, topic);
+        $("prov_conn").textContent = en
+          ? (con ? "Connected" : (err ? "Error: " + err : "Reconnecting…"))
+          : "Disabled";
+      }
+    }
+    
+    function getUnitName(unitCode) {
+      switch(unitCode) {
+        case 0: return "Percent (%)";
+        case 1: return "Voltage (V)";
+        case 2: return "ADC Raw";
+        case 3: return "Custom Units";
+        default: return "Unknown";
+      }
+    }
+
+    function renderLevel(l){
+      const adc = l?.adc;
+      const voltage = l?.voltage_sensor;
+      const levelPercent = l?.level_percent;
+      const levelCustom = l?.level_custom;
+      const avg = l?.v_avg_10s;
+      const std = l?.v_std;
+      const ts = l?.ts_ms;
+      const displayUnit = l?.display_unit ?? 0;
+      
+      $("m_adc").textContent = (typeof adc === "number") ? adc : "—";
+      $("m_voltage").textContent = (typeof voltage === "number") ? voltage.toFixed(2) : "—";
+      $("m_avg").textContent = (typeof avg === "number") ? avg.toFixed(2) : "—";
+      $("m_std").textContent = (typeof std === "number") ? std.toFixed(3) : "—";
+      
+      // Update based on display unit
+      let displayValue = "—";
+      let displaySub = "";
+      
+      if (displayUnit === 0 && typeof levelPercent === "number") { // Percent
+        displayValue = levelPercent.toFixed(1);
+        $("m_level_sub").textContent = "Water Level";
+        updateWaterTank(levelPercent, 0);
+      } else if (displayUnit === 1 && typeof levelCustom === "number") { // Voltage
+        displayValue = levelCustom.toFixed(2);
+        $("m_level_sub").textContent = "Sensor Voltage";
+        updateWaterTank(0, 1, levelCustom);
+      } else if (displayUnit === 2 && typeof levelCustom === "number") { // ADC Raw
+        displayValue = Math.round(levelCustom);
+        $("m_level_sub").textContent = "ADC Raw Value";
+        updateWaterTank(0, 2, levelCustom);
+      } else if (displayUnit === 3 && typeof levelCustom === "number") { // Custom Units
+        displayValue = levelCustom.toFixed(1);
+        $("m_level_sub").textContent = "Custom Units";
+        updateWaterTank(0, 3, levelCustom);
+      } else {
+        displayValue = "—";
+        $("m_level_sub").textContent = "Needs calibration";
+      }
+      
+      $("m_level").textContent = displayValue;
+      
+      if (typeof voltage === "number"){
+        pushPoint(voltage, ts);
+        drawChart();
+      }
+    }
+
+    function renderCal(c){
+      const valid = !!c?.valid;
+      const quality = c?.quality || "NONE";
+      const unit = c?.unit ?? 0;
+      const customMax = c?.custom_max ?? 100;
+      const currentUnit = c?.current_unit ?? 0;
+      
+      $("currentUnitDisplay").textContent = getUnitName(currentUnit);
+      $("customMaxDisplay").textContent = unit === 3 ? customMax.toFixed(1) : "N/A";
+      
+      const empty = c?.empty || {};
+      const full = c?.full || {};
+      
+      $("cal_empty").textContent = empty.set ? (empty.level.toFixed(1) + getUnitSymbol(unit)) : "Not set";
+      $("cal_empty_sub").textContent = empty.set ? ("V=" + empty.v.toFixed(2)) : "—";
+      $("cal_full").textContent = full.set ? (full.level.toFixed(1) + getUnitSymbol(unit)) : "Not set";
+      $("cal_full_sub").textContent = full.set ? ("V=" + full.v.toFixed(2)) : "—";
+      
+      setCalBadge(quality, valid);
+    }
+    
+    function getUnitSymbol(unitCode) {
+      switch(unitCode) {
+        case 0: return "%";
+        case 1: return "V";
+        case 2: return "";
+        case 3: return "";
+        default: return "";
+      }
+    }
+
+    // --------------------------
+    // Unit Settings
+    // --------------------------
+    // Unit selector buttons
+    document.querySelectorAll('.unitBtn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const unit = parseInt(this.dataset.unit);
+        document.querySelectorAll('.unitBtn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        $("display_unit").value = unit;
+        $("custom_max").disabled = unit !== 3;
+      });
+    });
+    
+    // Display unit dropdown change
+    $("display_unit").addEventListener('change', function() {
+      const unit = parseInt(this.value);
+      document.querySelectorAll('.unitBtn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.unitBtn[data-unit="${unit}"]`).classList.add('active');
+      $("custom_max").disabled = unit !== 3;
+    });
+    
+    // Save unit settings
+    $("btnSaveUnit").addEventListener('click', async ()=>{
+      const currentUnit = parseInt($("display_unit").value);
+      const customMax = parseFloat($("custom_max").value) || 100;
+      
+      $("btnSaveUnit").disabled = true;
+      try{
+        await postForm("/api/settings/unit", {
+          current_unit: currentUnit.toString(),
+          custom_max: customMax.toString()
+        });
+        toast("Unit settings saved ✓");
+        await refreshStatus();
+        await refreshLevel();
+      } catch(err){
+        toast("Save failed: " + (err?.message || err));
+      } finally {
+        $("btnSaveUnit").disabled = false;
+      }
+    });
+
+    // --------------------------
+    // Platform provision + MQTT
+    // --------------------------
+    function setProvBadge(enabled, connected, topic){
+      const dot  = $("provDot");
+      const text = $("provText");
+      if (!enabled || !topic) {
+        dot.className  = "dot bad";
+        text.textContent = "Not provisioned";
+      } else if (connected) {
+        dot.className  = "dot ok";
+        text.textContent = "Connected";
+      } else {
+        dot.className  = "dot warn";
+        text.textContent = "Provisioned";
+      }
+    }
+
+    $("btnProvision").addEventListener("click", async ()=>{
+      const topic  = $("prov_input_topic").value.trim();
+      const apikey = $("prov_input_apikey").value.trim();
+      const msg    = $("provMsg");
+
+      if (!topic || !apikey){
+        msg.textContent = "Topic and API key are required.";
+        msg.style.cssText = "display:block;background:#f8d7da;color:#721c24;margin-top:10px;padding:10px;border-radius:10px;font-size:13px";
+        return;
+      }
+      $("btnProvision").disabled = true;
+      $("btnProvision").textContent = "Connecting...";
+      msg.style.display = "none";
+
+      try{
+        const fd = new FormData();
+        fd.append("topic",   topic);
+        fd.append("api_key", apikey);
+        const r = await fetch("/api/provision", {method:"POST", body: fd});
+        const j = await r.json();
+        if (j.ok){
+          msg.textContent = "Provisioned! MQTT is now configured.";
+          msg.style.cssText = "display:block;background:#d4edda;color:#155724;margin-top:10px;padding:10px;border-radius:10px;font-size:13px";
+          $("btnProvision").textContent = "Done";
+          $("prov_input_apikey").value = "";
+          await loadMqttSettings();
+          await refreshStatus();
+        } else {
+          msg.textContent = "Error: " + (j.error || "unknown");
+          msg.style.cssText = "display:block;background:#f8d7da;color:#721c24;margin-top:10px;padding:10px;border-radius:10px;font-size:13px";
+          $("btnProvision").disabled = false;
+          $("btnProvision").textContent = "Connect to Platform";
+        }
+      } catch(err){
+        msg.textContent = "Request failed: " + (err?.message || err);
+        msg.style.cssText = "display:block;background:#f8d7da;color:#721c24;margin-top:10px;padding:10px;border-radius:10px;font-size:13px";
+        $("btnProvision").disabled = false;
+        $("btnProvision").textContent = "Connect to Platform";
+      }
+    });
+
+    $("btnSaveMqtt").addEventListener("click", async ()=>{
+      $("btnSaveMqtt").disabled = true;
+      const retain   = $("mq_retain").checked ? "1" : "0";
+      const period   = ($("mq_period").value.trim() || "1000");
+      try{
+        await postForm("/api/settings/mqtt", { retain, period_ms: period });
+        toast("Publish settings saved ✓");
+        await refreshStatus();
+      } catch(err){
+        toast("Save failed: " + (err?.message || err));
+      } finally {
+        $("btnSaveMqtt").disabled = false;
+      }
+    });
+
+    async function loadMqttSettings(){
+      try{
+        const m = await fetchJSON("/api/settings/mqtt", 3000);
+        const provisioned = !!(m.enabled && m.topic);
+
+        // show/hide status row
+        $("provStatus").style.display  = provisioned ? "" : "none";
+        $("provSep").style.display     = provisioned ? "" : "none";
+        $("prov_topic").textContent    = m.topic || "—";
+        $("prov_conn").textContent     = m.enabled
+          ? ($("provDot").className.includes("ok") ? "Connected" : "Provisioned (reconnecting…)")
+          : "Disabled";
+
+        // pre-fill topic input when already provisioned
+        if (provisioned) $("prov_input_topic").value = m.topic;
+
+        $("mq_retain").checked = !!m.retain;
+        $("mq_period").value   = m.period_ms || 1000;
+
+        setProvBadge(!!m.enabled, false, m.topic);
+      } catch(e){
+        // mqtt disabled in firmware
+      }
+    }
+
+    // --------------------------
+    // Calibration clear
+    // --------------------------
+    $("btnClearCal").addEventListener("click", async ()=>{
+      if (!confirm("Clear all calibration points? This cannot be undone.")) return;
+      $("btnClearCal").disabled = true;
+      try{
+        const r = await fetch("/api/cal/clear", {method:"POST"});
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        toast("Calibration cleared ✓");
+        await refreshCal();
+        await refreshStatus();
+      } catch(err){
+        toast("Clear failed: " + (err?.message || err));
+      } finally {
+        $("btnClearCal").disabled = false;
+      }
+    });
+
+    // --------------------------
+    // Poll loops
+    // --------------------------
+    let alive = true;
+    
+    async function refreshStatus(){
+      const s = await fetchJSON("/api/status", 2500);
+      renderDevice(s);
+    }
+    
+    async function refreshLevel(){
+      const l = await fetchJSON("/api/level", 2500);
+      renderLevel(l);
+    }
+    
+    async function refreshCal(){
+      const c = await fetchJSON("/api/cal", 2500);
+      renderCal(c);
+    }
+    
+    async function start(){
+      // initial loads
+      try{ await refreshStatus(); } catch(e){ toast("Status offline"); }
+      await loadMqttSettings();
+      try{ await refreshCal(); } catch(e){}
+      try{ await refreshLevel(); } catch(e){}
+      
+      // intervals (keep light)
+      setInterval(async ()=>{
+        if(!alive) return;
+        try{ await refreshLevel(); } catch(e){}
+      }, 1000);
+      
+      setInterval(async ()=>{
+        if(!alive) return;
+        try{ await refreshCal(); } catch(e){}
+      }, 2500);
+      
+      setInterval(async ()=>{
+        if(!alive) return;
+        try{ await refreshStatus(); } catch(e){}
+      }, 5000);
+    }
+    
+    window.addEventListener("visibilitychange", ()=>{
+      alive = !document.hidden;
+    });
+    
+    // go
+    start();
+  </script>
+</body>
+</html>
