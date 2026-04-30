@@ -734,6 +734,7 @@ static void mqttEventHandler(void* arg, esp_event_base_t base,
 
 static void mqttStart() {
   if (!mqttCfg.enabled || !mqttCfg.uri.length()) return;
+  if (!wifiSt.connected) return;
 
   if (mqttHandle) {
     esp_mqtt_client_stop(mqttHandle);
@@ -767,10 +768,11 @@ static void mqttStart() {
 }
 
 static void mqttTick(uint32_t now) {
+  mqttSt.connected = mqttConnected;
   if (!mqttCfg.enabled) { mqttSt.connected = false; return; }
-  if (now - mqttSt.last_pub_ms < mqttCfg.pub_period_ms) return;
-  mqttSt.last_pub_ms = now;
-  mqttPublishNow();
+  if (!mqttHandle && wifiSt.connected && mqttCfg.uri.length()) mqttStart();
+  if (!mqttConnected) return;
+  if (now - mqttSt.last_pub_ms >= mqttCfg.pub_period_ms) mqttPublishNow();
 }
 #endif
 

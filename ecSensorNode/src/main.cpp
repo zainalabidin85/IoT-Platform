@@ -46,6 +46,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <HTTPUpdate.h>
+#include <ESPmDNS.h>
 
 /**************************************************************
  *                    CONFIG / PIN MAP
@@ -62,7 +63,7 @@ TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
 cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
 WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
 ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
-MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoBggIBAK3oJHP0FDfzm54rVygc
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
 h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
 0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
 A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
@@ -75,13 +76,17 @@ jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
 qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
 rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
 HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
-hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIyrQLIHxW0BD7pBmyDhVV
-aIXSdyFBBGPIHPHVkGAYuHwQx8v6IvGcvI3Dxcj/HuNkIH2VUbMvUMWNbU8oYsJ
-mh/G8ENq7A0H7UBRqzf3FKb5J7L6gvhvMxR4I8+9lMCHoB1J3TL5xH0xyVX2oLK
-z7rFMYExJVNjc7Dv7vCWJw7VZQXODGzW4Xq0YisTLw2jbulCH5GV4LnHlABUhxb
-hW0sDfcVU7VNGLhGCpuuLTwwL2e7J9PLVR2DKf8a9nt7RP3fubSMkDr3qHtJZDv
-g8Hs3kJVLDPWJxFVCWP9SBpJ0+nxFlFvMcNwJ1UVWw4U1BVZ8sFP5O8JEWZvIJY
-OJkVqAXKE7LNQJ6T0tM8JbnNFUJKmvIxTblqyQR6jRIjJJA7J2dRQ==
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
@@ -830,6 +835,12 @@ static void systemTick(uint32_t now) {
   if (sysState == SYS_CONNECTING) {
     if (wifiSt.connected) {
       sysState = SYS_RUNNING;
+      String mdnsName = deviceName();
+      if (MDNS.begin(mdnsName.c_str())) {
+        MDNS.addService("http", "tcp", 80);
+        wifiSt.mdns = mdnsName + ".local";
+        Serial.println("[mDNS] http://" + wifiSt.mdns + "/");
+      }
       return;
     }
     // timeout -> AP
@@ -1879,7 +1890,7 @@ static void mqttInit() {
  **************************************************************/
 static void lcdSplash() {
   lcd.clear();
-  lcdSetLine(0, "EC Node (SuperMini)");
+  lcdSetLine(0, "EC Node v" + String(FW_VERSION));
   lcdSetLine(1, "FW:" + String(FW_VERSION));
   lcdSetLine(2, "Booting...");
   lcdSetLine(3, "Hold LIGHT = AP");

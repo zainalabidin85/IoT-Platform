@@ -1,8 +1,8 @@
 /**************************************************************
- * HydroNode (Merged) for ESP32-C3 SuperMini  ✅ MQTT-FIX VERSION
+ * HydroNode (Merged) for ESP32 Dev  ✅ MQTT-FIX VERSION
  *  - EC (0–5V transmitter, powered by 12V, output terminals: + and -)
  *  - Water Level (0–5V or 0–3.3V analog)
- *  - ✅ DS18B20 temperature sensor (GPIO5)
+ *  - ✅ DS18B20 temperature sensor (GPIO4)
  *
  * FIXES in this build:
  *  ✅ MQTT will NOT block UI anymore:
@@ -114,23 +114,23 @@ function showMsg(t,cls){const m=document.getElementById('msg');m.textContent=t;m
 )HTML";
 
 /**************************************************************
- * PINS (ESP32-C3 SuperMini)
+ * PINS (ESP32 Dev)
  **************************************************************/
 // I2C for LCD
-static const int PIN_I2C_SDA = 8;
-static const int PIN_I2C_SCL = 9;
+static const int PIN_I2C_SDA = 21;
+static const int PIN_I2C_SCL = 22;
 
-// ADC pins
-static const int PIN_EC_ADC    = 0;  // EC analog in
-static const int PIN_LEVEL_ADC = 1;  // Level analog in
+// ADC pins (input-only, ADC1 — no WiFi interference)
+static const int PIN_EC_ADC    = 34;  // EC analog in
+static const int PIN_LEVEL_ADC = 35;  // Level analog in
 
 // Buttons (to GND, INPUT_PULLUP)
-static const int PIN_BTN_LIGHT = 2;  // LIGHT/MODE
-static const int PIN_BTN_UP    = 3;  // CAL/UP
-static const int PIN_BTN_DN    = 4;  // DOWN/ENTER
+static const int PIN_BTN_LIGHT = 26;  // LIGHT/MODE
+static const int PIN_BTN_UP    = 27;  // CAL/UP
+static const int PIN_BTN_DN    = 25;  // DOWN/ENTER
 
 // DS18B20 (1-Wire)
-static const int PIN_DS18B20   = 5;  // DATA pin
+static const int PIN_DS18B20   = 4;   // DATA pin
 
 // LCD
 static const uint8_t LCD_ADDR = 0x27;
