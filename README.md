@@ -141,7 +141,6 @@ pH sensor node with 2-point calibration.
 
 - **Buttons:** LIGHT/MODE · CAL/UP · DOWN/ENTER
 - **API endpoints:** `/api/status` · `/api/ph` · `/api/cal`
-- **OTA:** supported via MQTT `ota/command` topic
 
 ---
 
@@ -152,8 +151,6 @@ Controls 4 relays independently via MQTT or web UI.
 - **Relay GPIO:** 32 · 33 · 25 · 26 (active HIGH)
 - **Input GPIO:** 16 · 17 · 18 · 19 (dry contact to GND, INPUT_PULLUP)
 - **Web UI auth:** `admin` / `switch4node`
-- **MQTT topics:** `<base>/relay/1` through `<base>/relay/4` — publish `ON` or `OFF`
-- **AP mode:** captive portal remains open (no auth)
 
 ---
 
@@ -164,7 +161,6 @@ Single relay controller.
 - **Relay GPIO:** 16 (active HIGH)
 - **Input GPIO:** 25 (dry contact to GND, INPUT_PULLUP)
 - **Web UI auth:** `admin` / `switchnode`
-- **MQTT:** subscribe to command topic, publish state feedback
 
 ---
 
@@ -172,11 +168,11 @@ Single relay controller.
 
 Temperature and humidity monitoring node. Supports two sensor types — select at build time.
 
-- **Sensor options:** DHT22 (temp + humidity) or DS18B20 (temp only)
+- **Sensor options:** DHT22 (temp + humidity) or DS18B20 (temp only) `Data PIN: 5`
 - **Select sensor:** set `SENSOR_DHT22` or `SENSOR_DS18B20` define in `main.cpp`
+- **LCD Display:** `SDA PIN: 21` · `SDL PIN: 22`
 - **Buttons:** LIGHT/MODE · UP · DOWN/ENTER
-- **API endpoints:** `/api/status` · `/api/temp`
-- **OTA:** supported via MQTT `ota/command` topic
+-
 
 ---
 
