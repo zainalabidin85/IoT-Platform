@@ -1,6 +1,6 @@
 # IoT Platform — Node Firmware Collection
 
-A collection of ESP32/ESP32-C3 firmware projects for MQTT-based IoT sensor and control nodes. Each node is a self-contained PlatformIO project that connects to the [IoT Platform](https://api-iot.unitani.com) and publishes data over MQTT.
+A collection of ESP32/ESP32-C3 firmware projects for MQTT-based IoT sensor and control nodes. Each node is a self-contained PlatformIO project that connects to the [IoT Platform](https://iot.unitani.com) and publishes data over MQTT.
 
 ---
 
@@ -28,7 +28,7 @@ All nodes share these capabilities:
 - **REST API** — JSON endpoints for reading sensor data and changing settings.
 - **MQTT publishing** — publishes sensor readings to a configurable broker topic.
 - **Platform provisioning** — registers with `https://api-iot.unitani.com` to obtain MQTT credentials automatically.
-- **OTA firmware update** — supported on most nodes via MQTT `ota/command` topic.
+
 
 ---
 
