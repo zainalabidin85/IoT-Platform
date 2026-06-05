@@ -1,0 +1,778 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KC868-A6</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    body { background:linear-gradient(135deg,#f5f7fa 0%,#e4edf5 100%); min-height:100vh; padding:20px; color:#1d1d1f; }
+    .container { max-width:1200px; margin:0 auto; }
+
+    /* Header */
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .header h1 { font-size:26px; font-weight:600; letter-spacing:-0.5px; background:rgba(255,255,255,0.5); padding:10px 20px; border-radius:30px; backdrop-filter:blur(10px); }
+    .device-badge { background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:30px; font-size:13px; font-family:'SF Mono',monospace; }
+
+    /* Status bar */
+    .status-bar { background:rgba(255,255,255,0.9); backdrop-filter:blur(20px); border-radius:16px; padding:14px 22px; margin-bottom:24px; display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.3); box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+    .status-item { display:flex; align-items:center; gap:8px; font-size:14px; }
+    .status-label { color:#86868b; font-weight:500; }
+    .status-value { color:#1d1d1f; font-weight:600; }
+    .badge { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .badge.success { background:rgba(52,199,89,0.15);  color:#34c759; }
+    .badge.warning { background:rgba(255,149,0,0.15);  color:#ff9500; }
+    .badge.error   { background:rgba(255,59,48,0.15);   color:#ff3b30; }
+
+    /* Section title */
+    .section-title { font-size:15px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+
+    /* Relay grid */
+    .relay-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; margin-bottom:28px; }
+    .relay-card { background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:22px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,0.07),inset 0 0 0 0.5px rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3); transition:transform 0.25s,box-shadow 0.25s; }
+    .relay-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(0,0,0,0.11); }
+    .relay-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .relay-title { font-size:18px; font-weight:600; }
+    .relay-badge { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(142,142,147,0.1); color:#8e8e93; }
+    .relay-badge.active { background:rgba(52,199,89,0.15); color:#34c759; }
+    .switch { position:relative; display:inline-block; width:58px; height:32px; margin:16px 0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#e4e4e7; transition:.3s; border-radius:32px; }
+    .slider:before { position:absolute; content:""; height:24px; width:24px; left:4px; bottom:4px; background:white; transition:.3s; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
+    input:checked + .slider { background:linear-gradient(135deg,#34c759,#30b753); }
+    input:checked + .slider:before { transform:translateX(26px); }
+    .action-buttons { display:flex; gap:10px; margin-top:12px; }
+    .btn { flex:1; padding:9px; border:none; border-radius:11px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; background:rgba(0,122,255,0.1); color:#007aff; }
+    .btn:hover { background:rgba(0,122,255,0.18); }
+    .btn:active { transform:scale(0.96); }
+
+    /* Input grid */
+    .input-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:28px; }
+    .input-card { background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); border-radius:18px; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,0.06); border:1px solid rgba(255,255,255,0.3); display:flex; align-items:center; gap:14px; }
+    .input-led { width:14px; height:14px; border-radius:50%; background:#d1d1d6; flex-shrink:0; transition:all 0.3s; }
+    .input-led.active { background:#007aff; box-shadow:0 0 10px rgba(0,122,255,0.5); }
+    .input-info { display:flex; flex-direction:column; gap:2px; }
+    .input-name { font-size:15px; font-weight:600; }
+    .input-state { font-size:12px; color:#86868b; font-weight:500; }
+
+    /* Sensor grid */
+    .sensor-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:28px; }
+    .sensor-card { background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:22px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,0.07),inset 0 0 0 0.5px rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3); }
+    .sensor-icon { font-size:28px; margin-bottom:10px; }
+    .sensor-label { font-size:13px; font-weight:500; color:#86868b; margin-bottom:4px; }
+    .sensor-value { font-size:32px; font-weight:700; letter-spacing:-1px; color:#1d1d1f; line-height:1; }
+    .sensor-unit { font-size:14px; font-weight:500; color:#86868b; margin-top:4px; }
+    .sensor-bar-wrap { margin-top:14px; height:6px; background:#f0f0f3; border-radius:3px; overflow:hidden; }
+    .sensor-bar { height:100%; border-radius:3px; transition:width 0.6s ease; }
+    .bar-temp  { background:linear-gradient(90deg,#34c759,#ff9500,#ff3b30); }
+    .bar-ec    { background:linear-gradient(90deg,#007aff,#5ac8fa); }
+    .bar-water { background:linear-gradient(90deg,#5ac8fa,#007aff); }
+
+    /* Calibration wizard */
+    .cal-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; margin-bottom:28px; }
+    .cal-card { background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:22px; padding:24px; box-shadow:0 8px 24px rgba(0,0,0,0.07),inset 0 0 0 0.5px rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3); }
+    .cal-card h3 { font-size:15px; font-weight:600; margin-bottom:16px; }
+    /* Step dots */
+    .wiz-steps { display:flex; align-items:center; gap:0; margin-bottom:20px; }
+    .wiz-dot { width:28px; height:28px; border-radius:50%; background:#f0f0f3; border:2px solid #e0e0e5; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#aeaeb2; flex-shrink:0; transition:all 0.3s; }
+    .wiz-dot.active { background:#007aff; border-color:#007aff; color:white; }
+    .wiz-dot.done   { background:#34c759; border-color:#34c759; color:white; }
+    .wiz-line { flex:1; height:2px; background:#e0e0e5; margin:0 4px; transition:background 0.3s; }
+    .wiz-line.done { background:#34c759; }
+    /* Step panels */
+    .wiz-panel { display:none; }
+    .wiz-panel.active { display:block; }
+    .wiz-instr { font-size:13px; color:#636366; line-height:1.55; margin-bottom:16px; }
+    .wiz-instr strong { color:#1d1d1f; }
+    /* Input row */
+    .cal-field { margin-bottom:14px; }
+    .cal-field label { display:block; font-size:12px; font-weight:500; color:#86868b; margin-bottom:5px; }
+    .cal-field input[type=number] { width:100%; padding:10px 12px; font-size:14px; border-radius:10px; border:1px solid #d2d2d7; background:rgba(255,255,255,0.9); outline:none; transition:all 0.2s; }
+    .cal-field input[type=number]:focus { border-color:#007aff; box-shadow:0 0 0 3px rgba(0,122,255,0.12); }
+    /* Live voltage chip */
+    .live-v { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#f5f7fa; border-radius:12px; margin-bottom:14px; font-size:13px; }
+    .live-v .lv-label { color:#86868b; flex:1; }
+    .live-v .lv-val { font-family:'SF Mono',monospace; font-weight:700; font-size:15px; color:#1d1d1f; }
+    .live-v .lv-dot { width:8px; height:8px; border-radius:50%; background:#34c759; animation:pulse 1.5s infinite; flex-shrink:0; }
+    /* Capture button */
+    .btn-capture { width:100%; padding:11px; border:none; border-radius:11px; font-size:13px; font-weight:600; background:rgba(0,122,255,0.1); color:#007aff; cursor:pointer; transition:all 0.2s; margin-bottom:10px; }
+    .btn-capture:hover:not(:disabled) { background:rgba(0,122,255,0.18); }
+    .btn-capture:disabled { color:#aeaeb2; cursor:not-allowed; }
+    /* Captured chip */
+    .captured-chip { display:none; align-items:center; gap:6px; padding:8px 12px; background:rgba(52,199,89,0.1); border:1px solid rgba(52,199,89,0.25); border-radius:10px; font-size:12px; color:#1a7f37; margin-bottom:14px; }
+    .captured-chip.show { display:flex; }
+    /* Review box */
+    .cal-review { background:#f5f7fa; border-radius:12px; padding:14px; margin-bottom:14px; font-size:12px; line-height:1.7; }
+    .cal-review .rv-row { display:flex; justify-content:space-between; }
+    .cal-review .rv-label { color:#86868b; }
+    .cal-review .rv-val { font-family:'SF Mono',monospace; font-weight:600; color:#1d1d1f; }
+    .cal-review .rv-formula { margin-top:8px; padding-top:8px; border-top:1px solid #e0e0e5; font-family:'SF Mono',monospace; font-size:11px; color:#636366; word-break:break-all; }
+    /* Nav buttons */
+    .wiz-nav { display:flex; gap:8px; margin-top:6px; }
+    .btn-back { flex:0 0 80px; padding:10px; border:1px solid #e0e0e5; border-radius:11px; font-size:13px; font-weight:600; background:white; color:#636366; cursor:pointer; transition:all 0.2s; }
+    .btn-back:hover { background:#f5f7fa; }
+    .btn-next { flex:1; padding:10px; border:none; border-radius:11px; font-size:13px; font-weight:600; background:linear-gradient(135deg,#007aff,#0056d6); color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 3px 10px rgba(0,122,255,0.25); }
+    .btn-next:hover:not(:disabled) { background:linear-gradient(135deg,#0056d6,#0041a8); }
+    .btn-next:disabled { background:#c7c7cc; box-shadow:none; cursor:not-allowed; }
+    .btn-save { flex:1; padding:10px; border:none; border-radius:11px; font-size:13px; font-weight:600; background:linear-gradient(135deg,#34c759,#28a745); color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 3px 10px rgba(52,199,89,0.3); }
+    .btn-save:hover:not(:disabled) { background:linear-gradient(135deg,#28a745,#1e7e34); }
+    .btn-save:disabled { background:#c7c7cc; box-shadow:none; cursor:not-allowed; }
+    /* Success panel */
+    .wiz-success { display:none; text-align:center; padding:12px 0; }
+    .wiz-success.show { display:block; }
+    .wiz-success .ok-icon { font-size:40px; margin-bottom:10px; }
+    .wiz-success p { font-size:13px; color:#636366; margin-bottom:14px; }
+    .wiz-success a { font-size:13px; color:#007aff; cursor:pointer; text-decoration:none; }
+    /* Inline error */
+    .cal-err { font-size:12px; color:#ff3b30; margin-top:6px; display:none; }
+    .cal-err.show { display:block; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:28px; right:28px; background:rgba(0,0,0,0.82); backdrop-filter:blur(10px); color:white; padding:11px 22px; border-radius:28px; font-size:14px; transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:1000; }
+    .toast.show { transform:translateY(0); opacity:1; }
+
+    @media(max-width:600px) {
+      .header { flex-direction:column; align-items:flex-start; }
+      .status-bar { flex-direction:column; align-items:flex-start; }
+      .toast { left:16px; right:16px; text-align:center; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>KC868-A6</h1>
+    <div class="device-badge" id="deviceMdns">kc868a6-xxxx.local</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-label">IP:</span>
+      <span class="status-value" id="deviceIp">—</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Signal:</span>
+      <span class="status-value" id="deviceRssi">—</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">MQTT:</span>
+      <span class="badge" id="mqttStatus">—</span>
+    </div>
+    <div class="status-item">
+      <a href="/settings" style="color:#007aff;text-decoration:none;font-weight:500;">Settings</a>
+    </div>
+  </div>
+
+  <div class="section-title">Sensors</div>
+  <div class="sensor-grid">
+
+    <div class="sensor-card">
+      <div class="sensor-icon">Temperature</div>
+      <div class="sensor-label">Temperature</div>
+      <div class="sensor-value" id="sTemp">—</div>
+      <div class="sensor-unit">°C</div>
+      <div class="sensor-bar-wrap">
+        <div class="sensor-bar bar-temp" id="barTemp" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="sensor-card">
+      <div class="sensor-icon">Electrical Conductivity</div>
+      <div class="sensor-label">EC</div>
+      <div class="sensor-value" id="sEC">—</div>
+      <div class="sensor-unit">mS/cm</div>
+      <div class="sensor-bar-wrap">
+        <div class="sensor-bar bar-ec" id="barEC" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="sensor-card">
+      <div class="sensor-icon">Water Level</div>
+      <div class="sensor-label">Water Level</div>
+      <div class="sensor-value" id="sWater">—</div>
+      <div class="sensor-unit">%</div>
+      <div class="sensor-bar-wrap">
+        <div class="sensor-bar bar-water" id="barWater" style="width:0%"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-title">Relays</div>
+  <div class="relay-grid" id="relayGrid"></div>
+
+  <div class="section-title">Digital Inputs</div>
+  <div class="input-grid" id="inputGrid"></div>
+
+  <div class="section-title">Sensor Calibration</div>
+  <div class="cal-grid">
+
+    <!-- ===== EC Wizard ===== -->
+    <div class="cal-card">
+      <h3>EC Two-Point Calibration</h3>
+
+      <!-- Step dots -->
+      <div class="wiz-steps">
+        <div class="wiz-dot active" id="ecDot1">1</div>
+        <div class="wiz-line" id="ecLine1"></div>
+        <div class="wiz-dot" id="ecDot2">2</div>
+        <div class="wiz-line" id="ecLine2"></div>
+        <div class="wiz-dot" id="ecDot3">3</div>
+      </div>
+
+      <!-- Step 1 — Solution 1 -->
+      <div class="wiz-panel active" id="ecPanel1">
+        <p class="wiz-instr">Rinse the probe with distilled water, then dip it into your <strong>first standard solution</strong> (e.g. 1413 µS/cm). Wait 30 s for the reading to stabilise.</p>
+        <div class="live-v">
+          <span class="lv-label">Current raw voltage</span>
+          <span class="lv-val" id="ecLiveV1">—</span> V
+          <span class="lv-dot"></span>
+        </div>
+        <div class="cal-field">
+          <label>Known EC of this solution (mS/cm)</label>
+          <input type="number" id="ecKnown1" step="0.001" min="0.001" placeholder="e.g. 1.413">
+        </div>
+        <button class="btn-capture" id="ecCapBtn1" onclick="ecCapture(1)">Capture Reading</button>
+        <div class="captured-chip" id="ecChip1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="ecChip1Text">Captured: — V</span>
+        </div>
+        <div class="cal-err" id="ecErr1"></div>
+        <div class="wiz-nav">
+          <button class="btn-next" id="ecNext1" onclick="ecGoStep(2)" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 2 — Solution 2 -->
+      <div class="wiz-panel" id="ecPanel2">
+        <p class="wiz-instr">Rinse the probe, then dip into your <strong>second standard solution</strong> (e.g. 12.88 mS/cm). Wait 30 s.</p>
+        <div class="live-v">
+          <span class="lv-label">Current raw voltage</span>
+          <span class="lv-val" id="ecLiveV2">—</span> V
+          <span class="lv-dot"></span>
+        </div>
+        <div class="cal-field">
+          <label>Known EC of this solution (mS/cm)</label>
+          <input type="number" id="ecKnown2" step="0.001" min="0.001" placeholder="e.g. 12.880">
+        </div>
+        <button class="btn-capture" id="ecCapBtn2" onclick="ecCapture(2)">Capture Reading</button>
+        <div class="captured-chip" id="ecChip2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="ecChip2Text">Captured: — V</span>
+        </div>
+        <div class="cal-err" id="ecErr2"></div>
+        <div class="wiz-nav">
+          <button class="btn-back" onclick="ecGoStep(1)">Back</button>
+          <button class="btn-next" id="ecNext2" onclick="ecGoStep(3)" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 3 — Review & Save -->
+      <div class="wiz-panel" id="ecPanel3">
+        <p class="wiz-instr">Review the computed calibration below, then tap <strong>Save</strong> to apply it to the device.</p>
+        <div class="cal-review" id="ecReview"></div>
+        <div class="cal-err" id="ecErr3"></div>
+        <div class="wiz-nav">
+          <button class="btn-back" onclick="ecGoStep(2)">Back</button>
+          <button class="btn-save" id="ecSaveBtn" onclick="ecSave()">Save</button>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div class="wiz-success" id="ecSuccess">
+        <div class="ok-icon">✓</div>
+        <p>EC calibration saved successfully.</p>
+        <a onclick="ecReset()">Recalibrate</a>
+      </div>
+    </div>
+
+    <!-- ===== Water Level Wizard ===== -->
+    <div class="cal-card">
+      <h3>Water Level Calibration</h3>
+
+      <!-- Step dots -->
+      <div class="wiz-steps">
+        <div class="wiz-dot active" id="wlDot1">1</div>
+        <div class="wiz-line" id="wlLine1"></div>
+        <div class="wiz-dot" id="wlDot2">2</div>
+        <div class="wiz-line" id="wlLine2"></div>
+        <div class="wiz-dot" id="wlDot3">3</div>
+      </div>
+
+      <!-- Step 1 — Empty -->
+      <div class="wiz-panel active" id="wlPanel1">
+        <p class="wiz-instr">Drain the tank to its <strong>minimum level</strong> (empty). Wait for the reading to stabilise, then tap Capture.</p>
+        <div class="live-v">
+          <span class="lv-label">Current raw voltage</span>
+          <span class="lv-val" id="wlLiveV1">—</span> V
+          <span class="lv-dot"></span>
+        </div>
+        <button class="btn-capture" id="wlCapBtn1" onclick="wlCapture(1)">Capture Empty Level</button>
+        <div class="captured-chip" id="wlChip1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="wlChip1Text">Empty: — V</span>
+        </div>
+        <div class="cal-err" id="wlErr1"></div>
+        <div class="wiz-nav">
+          <button class="btn-next" id="wlNext1" onclick="wlGoStep(2)" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 2 — Full -->
+      <div class="wiz-panel" id="wlPanel2">
+        <p class="wiz-instr">Fill the tank to its <strong>maximum level</strong> (full). Wait for the reading to stabilise, then tap Capture.</p>
+        <div class="live-v">
+          <span class="lv-label">Current raw voltage</span>
+          <span class="lv-val" id="wlLiveV2">—</span> V
+          <span class="lv-dot"></span>
+        </div>
+        <button class="btn-capture" id="wlCapBtn2" onclick="wlCapture(2)">Capture Full Level</button>
+        <div class="captured-chip" id="wlChip2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="wlChip2Text">Full: — V</span>
+        </div>
+        <div class="cal-err" id="wlErr2"></div>
+        <div class="wiz-nav">
+          <button class="btn-back" onclick="wlGoStep(1)">Back</button>
+          <button class="btn-next" id="wlNext2" onclick="wlGoStep(3)" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 3 — Review & Save -->
+      <div class="wiz-panel" id="wlPanel3">
+        <p class="wiz-instr">Review the calibration range below, then tap <strong>Save</strong> to apply it.</p>
+        <div class="cal-review" id="wlReview"></div>
+        <div class="cal-err" id="wlErr3"></div>
+        <div class="wiz-nav">
+          <button class="btn-back" onclick="wlGoStep(2)">Back</button>
+          <button class="btn-save" id="wlSaveBtn" onclick="wlSave()">Save</button>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div class="wiz-success" id="wlSuccess">
+        <div class="ok-icon">✓</div>
+        <p>Water level calibration saved successfully.</p>
+        <a onclick="wlReset()">Recalibrate</a>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let relays = [false,false,false,false,false,false];
+  let inputs = [false,false,false,false,false,false];
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ---- Relay grid ----
+  function renderRelayGrid() {
+    let html = '';
+    for (let i = 0; i < 6; i++) {
+      const n = i + 1;
+      html += `<div class="relay-card" id="relay-${i}">
+        <div class="relay-header">
+          <span class="relay-title">Relay ${n}</span>
+          <span class="relay-badge ${relays[i]?'active':''}">${relays[i]?'ON':'OFF'}</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" class="relay-toggle" data-relay="${n}" ${relays[i]?'checked':''}>
+          <span class="slider"></span>
+        </label>
+        <div class="action-buttons">
+          <button class="btn" onclick="setRelay(${n},true)">ON</button>
+          <button class="btn" onclick="setRelay(${n},false)">OFF</button>
+        </div>
+      </div>`;
+    }
+    document.getElementById('relayGrid').innerHTML = html;
+    document.querySelectorAll('.relay-toggle').forEach(el => {
+      el.addEventListener('change', e => setRelay(parseInt(e.target.dataset.relay), e.target.checked));
+    });
+  }
+
+  function updateRelayCard(i) {
+    const card = document.getElementById('relay-' + i);
+    if (!card) return;
+    card.querySelector('.relay-toggle').checked = relays[i];
+    const badge = card.querySelector('.relay-badge');
+    badge.textContent = relays[i] ? 'ON' : 'OFF';
+    badge.className = 'relay-badge' + (relays[i] ? ' active' : '');
+  }
+
+  // ---- Input grid ----
+  function renderInputGrid() {
+    let html = '';
+    for (let i = 0; i < 6; i++) {
+      const n = i + 1;
+      html += `<div class="input-card">
+        <div class="input-led ${inputs[i]?'active':''}" id="led-${i}"></div>
+        <div class="input-info">
+          <span class="input-name">DI ${n}</span>
+          <span class="input-state" id="istate-${i}">${inputs[i]?'CLOSED':'OPEN'}</span>
+        </div>
+      </div>`;
+    }
+    document.getElementById('inputGrid').innerHTML = html;
+  }
+
+  function updateInputCard(i) {
+    const led = document.getElementById('led-' + i);
+    const st  = document.getElementById('istate-' + i);
+    if (led) led.className = 'input-led' + (inputs[i] ? ' active' : '');
+    if (st)  st.textContent = inputs[i] ? 'CLOSED' : 'OPEN';
+  }
+
+  // ---- Sensor cards ----
+  function updateSensors(d) {
+    // Temperature (range 0–60°C for bar)
+    if (d.temperature !== undefined) {
+      const t = parseFloat(d.temperature);
+      document.getElementById('sTemp').textContent = t.toFixed(1);
+      document.getElementById('barTemp').style.width = Math.min(100, Math.max(0, (t / 60) * 100)) + '%';
+    } else {
+      document.getElementById('sTemp').textContent = '—';
+      document.getElementById('barTemp').style.width = '0%';
+    }
+
+    // EC (range 0–5 mS/cm for bar)
+    if (d.ec !== undefined) {
+      const e = parseFloat(d.ec);
+      document.getElementById('sEC').textContent = e.toFixed(2);
+      document.getElementById('barEC').style.width = Math.min(100, Math.max(0, (e / 5) * 100)) + '%';
+    } else {
+      document.getElementById('sEC').textContent = '—';
+      document.getElementById('barEC').style.width = '0%';
+    }
+
+    // Water level (0–100%)
+    if (d.water_level !== undefined) {
+      const w = parseFloat(d.water_level);
+      document.getElementById('sWater').textContent = w.toFixed(1);
+      document.getElementById('barWater').style.width = Math.min(100, Math.max(0, w)) + '%';
+    } else {
+      document.getElementById('sWater').textContent = '—';
+      document.getElementById('barWater').style.width = '0%';
+    }
+  }
+
+  // ---- Fetch status (relays + inputs + MQTT) ----
+  async function fetchStatus() {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+      if (!d.ok) return;
+      document.getElementById('deviceMdns').textContent = d.mdns || '';
+      document.getElementById('deviceIp').textContent   = d.ip   || '';
+      document.getElementById('deviceRssi').textContent = d.rssi ? d.rssi + ' dBm' : '';
+      const ms = document.getElementById('mqttStatus');
+      if (d.mqtt_connected)      { ms.textContent='Connected';     ms.className='badge success'; }
+      else if (d.mqtt_enabled)   { ms.textContent='Disconnected';  ms.className='badge error'; }
+      else                       { ms.textContent='Not configured'; ms.className='badge warning'; }
+      if (d.relays)        { relays=d.relays;        for(let i=0;i<6;i++) updateRelayCard(i); }
+      if (d.inputs_closed) { inputs=d.inputs_closed; for(let i=0;i<6;i++) updateInputCard(i); }
+    } catch(e) {}
+  }
+
+  // ---- Fetch sensors (temperature, EC, water level) ----
+  // Raw voltage for wizard live display
+  let liveEcV   = null;
+  let liveWaterV = null;
+
+  async function fetchSensors() {
+    try {
+      const r = await fetch('/api/sensors');
+      const d = await r.json();
+      updateSensors(d);
+      if (d.ec_voltage !== undefined) {
+        liveEcV = parseFloat(d.ec_voltage);
+        setText('ecLiveV1', liveEcV.toFixed(3));
+        setText('ecLiveV2', liveEcV.toFixed(3));
+      }
+      if (d.ec_voltage !== undefined && d.water_v_min !== undefined && d.water_v_max !== undefined) {
+        const wl   = parseFloat(d.water_level ?? 0);
+        const vmin = parseFloat(d.water_v_min);
+        const vmax = parseFloat(d.water_v_max);
+        liveWaterV = vmin + (wl / 100) * (vmax - vmin);
+        setText('wlLiveV1', liveWaterV.toFixed(3));
+        setText('wlLiveV2', liveWaterV.toFixed(3));
+      } else if (d.ec_voltage !== undefined) {
+        // water not yet calibrated — use raw ADC voltage fallback
+        const rawWater = parseFloat(d.ec_voltage ?? 0); // placeholder — real would need separate field
+        // Don't update if we don't have the right field
+      }
+    } catch(e) {}
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  // ---- Generic POST to /api/sensors/cal ----
+  async function postCal(params) {
+    const fd = new URLSearchParams(params);
+    const r = await fetch('/api/sensors/cal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: fd.toString()
+    });
+    return r.json();
+  }
+
+  // ==========================================================
+  // EC Wizard state
+  // ==========================================================
+  const ec = { step:1, v1:null, ec1:null, v2:null, ec2:null, slope:null, offset:null };
+
+  function ecGoStep(n) {
+    // Validate forward transitions
+    if (n === 2) {
+      const known = parseFloat(document.getElementById('ecKnown1').value);
+      if (!ec.v1)          { ecShowErr(1, 'Capture a reading first.'); return; }
+      if (isNaN(known) || known <= 0) { ecShowErr(1, 'Enter a valid EC value.'); return; }
+      ec.ec1 = known;
+      ecHideErr(1);
+    }
+    if (n === 3) {
+      const known = parseFloat(document.getElementById('ecKnown2').value);
+      if (!ec.v2)          { ecShowErr(2, 'Capture a reading first.'); return; }
+      if (isNaN(known) || known <= 0) { ecShowErr(2, 'Enter a valid EC value.'); return; }
+      ec.ec2 = known;
+      ecHideErr(2);
+      // Compute slope & offset
+      const dV  = ec.v2 - ec.v1;
+      const dEC = ec.ec2 - ec.ec1;
+      if (Math.abs(dV) < 0.01)  { ecShowErr(2, 'Voltage difference too small — use solutions further apart.'); return; }
+      if (Math.abs(dEC) < 0.01) { ecShowErr(2, 'EC difference too small — use solutions further apart.'); return; }
+      ec.slope  = dEC / dV;
+      ec.offset = ec.v1 - ec.ec1 / ec.slope;
+      // Render review
+      const curEC = liveEcV !== null ? ((liveEcV - ec.offset) * ec.slope).toFixed(2) + ' mS/cm' : '—';
+      document.getElementById('ecReview').innerHTML =
+        `<div class="rv-row"><span class="rv-label">Solution 1</span><span class="rv-val">${ec.v1.toFixed(3)} V → ${ec.ec1} mS/cm</span></div>
+         <div class="rv-row"><span class="rv-label">Solution 2</span><span class="rv-val">${ec.v2.toFixed(3)} V → ${ec.ec2} mS/cm</span></div>
+         <div class="rv-row"><span class="rv-label">Slope</span><span class="rv-val">${ec.slope.toFixed(4)} mS/cm/V</span></div>
+         <div class="rv-row"><span class="rv-label">Offset</span><span class="rv-val">${ec.offset.toFixed(4)} V</span></div>
+         <div class="rv-row"><span class="rv-label">Current reading</span><span class="rv-val">${curEC}</span></div>
+         <div class="rv-formula">EC = (V − ${ec.offset.toFixed(4)}) × ${ec.slope.toFixed(4)}</div>`;
+    }
+    ec.step = n;
+    ecRenderStep();
+  }
+
+  function ecRenderStep() {
+    [1,2,3].forEach(i => {
+      document.getElementById('ecPanel'+i).className = 'wiz-panel' + (ec.step===i?' active':'');
+      const dot = document.getElementById('ecDot'+i);
+      dot.className = 'wiz-dot' + (ec.step===i?' active': ec.step>i?' done':'');
+      if (i < 3) document.getElementById('ecLine'+i).className = 'wiz-line' + (ec.step>i?' done':'');
+    });
+    document.getElementById('ecSuccess').className = 'wiz-success';
+  }
+
+  async function ecCapture(sol) {
+    const btn = document.getElementById('ecCapBtn'+sol);
+    btn.disabled = true; btn.textContent = 'Capturing…';
+    try {
+      const r = await fetch('/api/sensors');
+      const d = await r.json();
+      if (d.ec_voltage === undefined) { ecShowErr(sol, 'Sensor not available.'); return; }
+      const v = parseFloat(d.ec_voltage);
+      liveEcV = v;
+      setText('ecLiveV'+sol, v.toFixed(3));
+      if (sol === 1) {
+        ec.v1 = v;
+        setText('ecChip1Text', `Captured: ${v.toFixed(3)} V`);
+        document.getElementById('ecChip1').className = 'captured-chip show';
+        document.getElementById('ecNext1').disabled = false;
+      } else {
+        ec.v2 = v;
+        setText('ecChip2Text', `Captured: ${v.toFixed(3)} V`);
+        document.getElementById('ecChip2').className = 'captured-chip show';
+        document.getElementById('ecNext2').disabled = false;
+      }
+      ecHideErr(sol);
+    } catch(e) { ecShowErr(sol, 'Fetch failed.'); }
+    btn.disabled = false; btn.textContent = 'Capture Reading';
+  }
+
+  async function ecSave() {
+    const btn = document.getElementById('ecSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const d = await postCal({ ec_slope: ec.slope.toFixed(6), ec_offset: ec.offset.toFixed(6) });
+      if (d.ok) {
+        document.getElementById('ecPanel3').className = 'wiz-panel';
+        document.getElementById('ecSuccess').className = 'wiz-success show';
+      } else { ecShowErr(3, d.error || 'Save failed.'); }
+    } catch(e) { ecShowErr(3, 'Request failed.'); }
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+
+  function ecReset() {
+    ec.step=1; ec.v1=null; ec.ec1=null; ec.v2=null; ec.ec2=null; ec.slope=null; ec.offset=null;
+    document.getElementById('ecKnown1').value = '';
+    document.getElementById('ecKnown2').value = '';
+    document.getElementById('ecChip1').className = 'captured-chip';
+    document.getElementById('ecChip2').className = 'captured-chip';
+    document.getElementById('ecNext1').disabled = true;
+    document.getElementById('ecNext2').disabled = true;
+    [1,2,3].forEach(i => ecHideErr(i));
+    document.getElementById('ecSuccess').className = 'wiz-success';
+    ecRenderStep();
+  }
+
+  function ecShowErr(step, msg) { const el=document.getElementById('ecErr'+step); el.textContent=msg; el.className='cal-err show'; }
+  function ecHideErr(step)      { document.getElementById('ecErr'+step).className='cal-err'; }
+
+  // ==========================================================
+  // Water Level Wizard state
+  // ==========================================================
+  const wl = { step:1, vMin:null, vMax:null };
+
+  function wlGoStep(n) {
+    if (n === 2 && !wl.vMin) { wlShowErr(1, 'Capture the empty level first.'); return; }
+    if (n === 3) {
+      if (!wl.vMax) { wlShowErr(2, 'Capture the full level first.'); return; }
+      if (wl.vMax - wl.vMin < 0.1) { wlShowErr(2, 'Span too small (< 0.1 V). Ensure tank is truly empty vs. full.'); return; }
+      wlHideErr(2);
+      const span = wl.vMax - wl.vMin;
+      const curPct = liveWaterV !== null
+        ? Math.min(100, Math.max(0, (liveWaterV - wl.vMin) / span * 100)).toFixed(1) + '%'
+        : '—';
+      document.getElementById('wlReview').innerHTML =
+        `<div class="rv-row"><span class="rv-label">Empty voltage</span><span class="rv-val">${wl.vMin.toFixed(3)} V</span></div>
+         <div class="rv-row"><span class="rv-label">Full voltage</span><span class="rv-val">${wl.vMax.toFixed(3)} V</span></div>
+         <div class="rv-row"><span class="rv-label">Span</span><span class="rv-val">${span.toFixed(3)} V</span></div>
+         <div class="rv-row"><span class="rv-label">Current level</span><span class="rv-val">${curPct}</span></div>
+         <div class="rv-formula">% = (V − ${wl.vMin.toFixed(3)}) / ${span.toFixed(3)} × 100</div>`;
+    }
+    wl.step = n;
+    wlRenderStep();
+  }
+
+  function wlRenderStep() {
+    [1,2,3].forEach(i => {
+      document.getElementById('wlPanel'+i).className = 'wiz-panel' + (wl.step===i?' active':'');
+      const dot = document.getElementById('wlDot'+i);
+      dot.className = 'wiz-dot' + (wl.step===i?' active': wl.step>i?' done':'');
+      if (i < 3) document.getElementById('wlLine'+i).className = 'wiz-line' + (wl.step>i?' done':'');
+    });
+    document.getElementById('wlSuccess').className = 'wiz-success';
+  }
+
+  async function wlCapture(step) {
+    const btn = document.getElementById('wlCapBtn'+step);
+    btn.disabled = true; btn.textContent = 'Capturing…';
+    try {
+      const r = await fetch('/api/sensors');
+      const d = await r.json();
+      // Use ec_voltage as a proxy to read raw ADC; firmware exposes ec_voltage always
+      // For water we need a raw voltage — fetch it via a fresh sensor read and back-compute
+      let v = null;
+      if (d.water_v_min !== undefined && d.water_v_max !== undefined && d.water_level !== undefined) {
+        const vmin2 = parseFloat(d.water_v_min);
+        const vmax2 = parseFloat(d.water_v_max);
+        const wl2   = parseFloat(d.water_level);
+        v = vmin2 + (wl2 / 100) * (vmax2 - vmin2);
+      } else {
+        // Sensor not yet calibrated — can't back-compute; poll raw via a workaround:
+        // We'll set vmin/vmax to 0/5 temporarily and the fw will return 0-100% mapped linearly.
+        // Better: call with water_v_min=0&water_v_max=5 pre-set, then back-compute.
+        // For first-time calibration, back-compute from default 0-5V range.
+        v = parseFloat(d.water_level ?? 0) * 5.0 / 100.0;
+      }
+      if (v === null) { wlShowErr(step, 'Sensor not available.'); return; }
+      liveWaterV = v;
+      setText('wlLiveV'+step, v.toFixed(3));
+      if (step === 1) {
+        wl.vMin = v;
+        setText('wlChip1Text', `Empty: ${v.toFixed(3)} V`);
+        document.getElementById('wlChip1').className = 'captured-chip show';
+        document.getElementById('wlNext1').disabled = false;
+        wlHideErr(1);
+      } else {
+        wl.vMax = v;
+        setText('wlChip2Text', `Full: ${v.toFixed(3)} V`);
+        document.getElementById('wlChip2').className = 'captured-chip show';
+        document.getElementById('wlNext2').disabled = false;
+        wlHideErr(2);
+      }
+    } catch(e) { wlShowErr(step, 'Fetch failed.'); }
+    btn.disabled = false;
+    btn.textContent = step === 1 ? 'Capture Empty Level' : 'Capture Full Level';
+  }
+
+  async function wlSave() {
+    const btn = document.getElementById('wlSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const d = await postCal({ water_v_min: wl.vMin.toFixed(6), water_v_max: wl.vMax.toFixed(6) });
+      if (d.ok) {
+        document.getElementById('wlPanel3').className = 'wiz-panel';
+        document.getElementById('wlSuccess').className = 'wiz-success show';
+      } else { wlShowErr(3, d.error || 'Save failed.'); }
+    } catch(e) { wlShowErr(3, 'Request failed.'); }
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+
+  function wlReset() {
+    wl.step=1; wl.vMin=null; wl.vMax=null;
+    document.getElementById('wlChip1').className = 'captured-chip';
+    document.getElementById('wlChip2').className = 'captured-chip';
+    document.getElementById('wlNext1').disabled = true;
+    document.getElementById('wlNext2').disabled = true;
+    [1,2,3].forEach(i => wlHideErr(i));
+    document.getElementById('wlSuccess').className = 'wiz-success';
+    wlRenderStep();
+  }
+
+  function wlShowErr(step, msg) { const el=document.getElementById('wlErr'+step); el.textContent=msg; el.className='cal-err show'; }
+  function wlHideErr(step)      { document.getElementById('wlErr'+step).className='cal-err'; }
+
+  // Expose wizard nav to onclick handlers
+  window.ecGoStep=ecGoStep; window.ecCapture=ecCapture; window.ecSave=ecSave; window.ecReset=ecReset;
+  window.wlGoStep=wlGoStep; window.wlCapture=wlCapture; window.wlSave=wlSave; window.wlReset=wlReset;
+
+  // ---- Relay control ----
+  async function setRelay(relay, state) {
+    const fd = new URLSearchParams();
+    fd.append('relay', relay);
+    fd.append('state', state ? 'on' : 'off');
+    try {
+      const r = await fetch('/api/relay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: fd.toString()
+      });
+      const d = await r.json();
+      if (d.ok) {
+        relays[relay-1] = state;
+        updateRelayCard(relay-1);
+        showToast('Relay ' + relay + ' ' + (state ? 'ON' : 'OFF'));
+      }
+    } catch(e) { showToast('Error'); }
+  }
+
+  // ---- Init ----
+  window.addEventListener('load', () => {
+    renderRelayGrid();
+    renderInputGrid();
+    fetchStatus();
+    fetchSensors();
+    setInterval(fetchStatus,  3000);
+    setInterval(fetchSensors, 10000);  // sensors update every 10s on device
+  });
+</script>
+</body>
+</html>
