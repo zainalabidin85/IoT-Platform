@@ -41,7 +41,7 @@ ESP32-based 6-relay controller firmware for the [KinCony KC868-A6](https://www.k
 
 ### 1. Hardware preview
 
-[asset/kc868a6.png]
+[Hardware preview](asset/kc868a6.png)
 
 ### 2. Flash the firmware
 
