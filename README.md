@@ -168,7 +168,7 @@ Single relay controller.
 
 Temperature and humidity monitoring node. Supports two sensor types — select at build time.
 
-- **Sensor options:** DHT22 (temp + humidity) or DS18B20 (temp only) `Data PIN: 5`
+- **Sensor options:** DHT22 (temp + humidity) or DS18B20 (temp only) `Data PIN: 4`
 - **Select sensor:** set `SENSOR_DHT22` or `SENSOR_DS18B20` define in `main.cpp`
 - **LCD Display:** `SDA PIN: 21` · `SDL PIN: 22`
 - **Buttons:** LIGHT/MODE · UP · DOWN/ENTER
