@@ -15,8 +15,8 @@ ESP32-based 6-relay controller firmware for the [KinCony KC868-A6](https://www.k
 | Relay board (PCF8574) | I2C `0x24` | R1–R6, active LOW |
 | Input board (PCF8574) | I2C `0x22` | DI1–DI6, active LOW, debounced |
 | OLED SSD1306 128×64 | I2C `0x3C` | Optional |
-| EC sensor | GPIO36 (DA1) | 0–5V analog |
-| Water level sensor | GPIO39 (DA2) | 0–5V analog |
+| EC sensor | GPIO36 (A1) | 0–5V analog |
+| Water level sensor | GPIO39 (A2) | 0–5V analog |
 | DS18B20 temperature | GPIO32 (IO1) | 1-Wire |
 
 ---
