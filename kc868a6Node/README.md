@@ -17,7 +17,7 @@ ESP32-based 6-relay controller firmware for the [KinCony KC868-A6](https://www.k
 | OLED SSD1306 128×64 | I2C `0x3C` | Optional |
 | EC sensor | GPIO36 (A1) | 0–5V analog |
 | Water level sensor | GPIO39 (A2) | 0–5V analog |
-| DS18B20 temperature | GPIO32 | 1-Wire |
+| DS18B20 temperature | GPIO32 (IO1) | 1-Wire |
 
 ---
 
@@ -34,13 +34,17 @@ ESP32-based 6-relay controller firmware for the [KinCony KC868-A6](https://www.k
 - Telemetry published to MQTT every 30 s, and on every relay/input state change
 - Basic Auth on all web UI routes (`admin` / `kc868a6`)
 - Self-healing Wi-Fi: retries STA indefinitely on connection loss, never falls back to AP mode once provisioned
-- **OTA updates** — subscribes to `<base>/ota/command` (MQTT, retained); on receiving `{"version":"x.y.z","url":"..."}` with a version different from the running firmware, downloads and flashes the `.bin` via `HTTPUpdate`, then reboots. Triggered from the platform dashboard (Devices → device → OTA) after uploading a `.bin` under Dashboard → Firmware.
+- **OTA updates** — subscribes to `<base>/ota/command` (MQTT, retained); on receiving `{"version":"x.y.z","url":"..."}` with a version different from the running firmware, downloads and flashes the `.bin` via `HTTPUpdate` over TLS, then reboots. Triggered from the platform dashboard (Devices → device → OTA) after uploading a `.bin` under Dashboard → Firmware.
 
 ---
 
 ## Getting Started
 
-### 1. Flash the firmware
+### 1. Hardware preview
+
+![Hardware preview](asset/kc868a6.png)
+
+### 2. Flash the firmware
 
 ```bash
 cd kc868a6Node
@@ -48,7 +52,7 @@ pio run --target upload
 pio run --target uploadfs   # upload LittleFS web files
 ```
 
-### 2. Wi-Fi setup
+### 3. Wi-Fi setup
 
 On first boot the device creates an access point:
 
@@ -64,7 +68,7 @@ After connecting, the device is reachable at:
 http://kc868a6-XXXXXX.local/
 ```
 
-### 3. Connect to the platform
+### 4. Connect to the platform
 
 Open `http://kc868a6-XXXXXX.local/settings` (or tap **Settings** on the dashboard page).
 
@@ -126,6 +130,7 @@ Base topic is set during provisioning (e.g. `a6/a6-001`).
   "temperature": 27.4,
   "ec":          1.85,
   "water_level": 62.3,
+  "fw":          "1.0.4",
   "ts_ms":       123456789
 }
 ```
