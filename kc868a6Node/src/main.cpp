@@ -34,6 +34,7 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <HTTPUpdate.h>
 #include <ESPmDNS.h>
 #include "esp_wifi.h"
 #include <Adafruit_GFX.h>
@@ -134,6 +135,18 @@ Preferences prefs;
 
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "kc868a6Node";
+static const char* FW_VERSION       = "1.0.4";
+static String       _otaTopic;
+
+static void performOTA(const String& url) {
+  Serial.printf("[OTA] Starting from: %s\n", url.c_str());
+  WiFiClientSecure httpClient;
+  httpClient.setInsecure();  // matches provisioning's TLS handling (main.cpp:682)
+  httpUpdate.rebootOnUpdate(true);
+  auto ret = httpUpdate.update(httpClient, url);
+  if (ret == HTTP_UPDATE_FAILED)
+    Serial.printf("[OTA] Failed: %s\n", httpUpdate.getLastErrorString().c_str());
+}
 
 // -------------------- Basic Auth --------------------
 static const bool  BASIC_AUTH_ON = true;
@@ -154,7 +167,6 @@ struct DebouncedInput {
 enum Mode { MODE_AP, MODE_STA };
 Mode modeNow = MODE_AP;
 
-static uint32_t wifiDropAt = 0;  // millis() when WiFi first lost; 0 = connected
 static bool     wifiWasUp  = false;
 
 // -------------------- IDs --------------------
@@ -318,6 +330,7 @@ static void publishTelemetry() {
   if (!isnan(tempC))        doc["temperature"]  = serialized(String(tempC, 1));
   if (!isnan(ecVoltage))    doc["ec"]           = serialized(String((ecVoltage - ecOffset) * ecSlope, 2));
   if (!isnan(waterPercent)) doc["water_level"]  = serialized(String(waterPercent, 1));
+  doc["fw"] = FW_VERSION;
   doc["ts_ms"] = millis();
   char buf[512];
   serializeJson(doc, buf, sizeof(buf));
@@ -434,6 +447,15 @@ static void loadMqttCfg() {
   mqttCfg.cmdTopic   = prefs.getString("cmd", "");
   mqttCfg.stateTopic = prefs.getString("st", "");
   prefs.end();
+
+  // Fix 3: if previously provisioned, always enable MQTT
+  prefs.begin("prov", true);
+  bool provisioned = prefs.getBool("done", false);
+  prefs.end();
+  if (provisioned && mqttCfg.uri.length() > 0) {
+    mqttCfg.enabled = true;
+  }
+
   applyTopics();
 }
 static void saveMqttCfg() {
@@ -524,6 +546,18 @@ static bool handleRelaySetTopic(const String& topic, const String& payload) {
 static void mqttOnMessage(const String& topic, const String& msg) {
   Serial.printf("[MQTT] RX %s = %s\n", topic.c_str(), msg.c_str());
   if (handleRelaySetTopic(topic, msg)) return;
+  if (topic == _otaTopic) {
+    DynamicJsonDocument doc(256);
+    if (deserializeJson(doc, msg) == DeserializationError::Ok) {
+      const char* ver = doc["version"];
+      const char* url = doc["url"];
+      if (url && ver && String(ver) != FW_VERSION) {
+        Serial.printf("[OTA] New fw %s (have %s)\n", ver, FW_VERSION);
+        performOTA(url);
+      }
+    }
+    return;
+  }
   Serial.println("[MQTT] Unhandled topic");
 }
 
@@ -535,7 +569,9 @@ static void mqttEventHandler(void* arg, esp_event_base_t base,
       mqttConnected = true;
       oledDirty = true;
       Serial.println("[MQTT] Connected.");
+      _otaTopic = baseTopic + "/ota/command";
       esp_mqtt_client_subscribe(mqttHandle, tRelaySetWild.c_str(), 1);
+      esp_mqtt_client_subscribe(mqttHandle, _otaTopic.c_str(), 1);
       publishAvailability(true);
       publishAllRelayStates();
       publishAllInputStates();
@@ -575,7 +611,7 @@ static void mqttStart() {
   cfg.lwt_qos              = 1;
   cfg.lwt_retain           = 1;
   cfg.reconnect_timeout_ms = 5000;
-  cfg.cert_pem             = ISRG_ROOT_X1;
+  // Fix 6: cert_pem removed — platform returns ws:// URI (plain WebSocket)
   Serial.printf("[MQTT] uri=%s base=%s\n", mqttCfg.uri.c_str(), baseTopic.c_str());
   mqttHandle = esp_mqtt_client_init(&cfg);
   esp_mqtt_client_register_event(mqttHandle, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID,
@@ -638,11 +674,18 @@ function show(text, ok) {
 
 static void doProvision(const String& topic, const String& apiKey,
                         AsyncWebServerRequest* req) {
+  // Fix 1: fail fast if WiFi not connected
+  if (WiFi.status() != WL_CONNECTED) {
+    req->send(400, "application/json", "{\"ok\":false,\"error\":\"not_connected\"}");
+    return;
+  }
+
   WiFiClientSecure tls;
   tls.setInsecure();
   HTTPClient http;
   String url = String(PLATFORM_API_URL) + "/api/provision";
   http.begin(tls, url);
+  http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);  // Fix 2
   http.addHeader("Content-Type", "application/json");
   http.addHeader("x-api-key", apiKey);
 
@@ -652,7 +695,10 @@ static void doProvision(const String& topic, const String& apiKey,
   String bodyStr;
   serializeJson(body, bodyStr);
 
+  Serial.printf("[PROV] POST %s\n", url.c_str());
   int code = http.POST(bodyStr);
+  Serial.printf("[PROV] HTTP %d\n", code);
+
   if (code == 200 || code == 201) {
     String resp = http.getString();
     http.end();
@@ -666,6 +712,14 @@ static void doProvision(const String& topic, const String& apiKey,
         mqttCfg.pass       = cfg["pass"]  | "";
         mqttCfg.cmdTopic   = cfg["topic"] | topic.c_str();
         mqttCfg.stateTopic = "";
+
+        // Fix 5: log parsed provisioning result
+        Serial.printf("[PROV] uri=%s\n", mqttCfg.uri.c_str());
+        Serial.printf("[PROV] user=%s\n", mqttCfg.user.c_str());
+        Serial.printf("[PROV] pass=%s (len=%d)\n",
+                      mqttCfg.pass.length() ? "***" : "(empty)", mqttCfg.pass.length());
+        Serial.printf("[PROV] topic=%s\n", mqttCfg.cmdTopic.c_str());
+
         saveMqttCfg();
         applyTopics();
         mqttStart();
@@ -715,17 +769,27 @@ static void setupRoutes_AP() {
     String json = "{\"ok\":true,\"mode\":\"ap\",\"mdns\":\"" + mdnsFqdn + "\"}";
     r->send(200, "application/json", json);
   });
+  // Fix 4: async WiFi scan — avoids blocking web server (WDT risk)
   server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest *r){
-    int n = WiFi.scanNetworks();
-    String json = "{\"networks\":[";
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) {
+      r->send(200, "application/json", "{\"scanning\":true,\"networks\":[]}");
+      return;
+    }
+    if (n < 0) {
+      WiFi.scanNetworks(true);
+      r->send(200, "application/json", "{\"scanning\":true,\"networks\":[]}");
+      return;
+    }
+    String json = "{\"scanning\":false,\"networks\":[";
     for (int i = 0; i < n; i++) {
       if (i > 0) json += ",";
       json += "{\"ssid\":\"" + WiFi.SSID(i) + "\",\"rssi\":" + String(WiFi.RSSI(i)) +
               ",\"encryption\":\"" + (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "OPEN" : "SECURE") + "\"}";
     }
     json += "]}";
-    r->send(200, "application/json", json);
     WiFi.scanDelete();
+    r->send(200, "application/json", json);
   });
   server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest *r){
     auto v = [&](const char* k) -> String {
@@ -966,10 +1030,20 @@ void setup() {
 
   Serial.println("[ID] " + deviceId + "  mDNS: " + mdnsFqdn);
 
-  if (connectSTA(20000)) {
-    modeNow   = MODE_STA;
-    wifiWasUp = true;
-    startMDNS();
+  // A saved SSID means this device was already provisioned. Even if the
+  // initial connect attempt times out (e.g. router still booting after a
+  // power outage), stay in STA mode and let WiFi.setAutoReconnect(true)
+  // (set in connectSTA()) keep retrying in the background — never treat a
+  // temporarily unreachable router as "unprovisioned" and drop to AP mode.
+  bool staConnected = connectSTA(20000);
+  if (staConnected || wifiCfg.ssid.length()) {
+    modeNow = MODE_STA;
+    if (staConnected) {
+      wifiWasUp = true;
+      startMDNS();
+    } else {
+      Serial.println("[WiFi] STA not connected yet — will keep retrying in background.");
+    }
     setupRoutes_STA();
     mqttStart();
   } else {
@@ -989,24 +1063,6 @@ static uint32_t tempRequestAt  = 0;
 static const uint32_t TELEMETRY_INTERVAL_MS    = 30000;
 static const uint32_t SENSOR_INTERVAL_MS       = 10000;
 static const uint32_t DS18B20_CONV_MS          = 800;
-static const uint32_t WIFI_FALLBACK_MS = 5UL * 60UL * 1000UL; // 5 min
-
-static void fallbackToAP() {
-  Serial.println("[WiFi] Lost for too long — switching to AP mode.");
-  if (mqttHandle) {
-    esp_mqtt_client_stop(mqttHandle);
-    esp_mqtt_client_destroy(mqttHandle);
-    mqttHandle    = nullptr;
-    mqttConnected = false;
-  }
-  MDNS.end();
-  server.end();
-  modeNow = MODE_AP;
-  startAPPortal();
-  setupRoutes_AP();
-  oledDirty = true;
-}
-
 void loop() {
   if (modeNow == MODE_AP) {
     dns.processNextRequest();
@@ -1014,26 +1070,37 @@ void loop() {
     return;
   }
 
-  // Runtime WiFi-drop → AP fallback
-  if (WiFi.status() == WL_CONNECTED) {
-    if (!wifiWasUp) {
-      wifiWasUp  = true;
-      wifiDropAt = 0;
-      Serial.println("[WiFi] Reconnected.");
-    }
-  } else {
-    if (wifiWasUp) {
-      wifiWasUp  = false;
-      wifiDropAt = millis();
-      Serial.println("[WiFi] Connection lost — fallback timer started.");
-    }
-    if (wifiDropAt && (millis() - wifiDropAt) >= WIFI_FALLBACK_MS) {
-      fallbackToAP();
-      return;
+  uint32_t now = millis();
+
+  // Runtime WiFi drop: rely on WiFi.setAutoReconnect(true) (set in connectSTA())
+  // to keep retrying STA indefinitely. Never demote back to AP mode here —
+  // a router outage/reboot is transient and must self-heal without user
+  // intervention or losing the provisioned config. Also self-heals the case
+  // where setup() entered STA mode before the initial connect succeeded, and
+  // nudges WiFi.reconnect() periodically as a safety net in case
+  // autoReconnect stalls.
+  {
+    static uint32_t lastReconnectNudge = 0;
+    if (WiFi.status() == WL_CONNECTED) {
+      if (!wifiWasUp) {
+        wifiWasUp = true;
+        Serial.println("[WiFi] Reconnected.");
+        oledDirty = true;
+        startMDNS();
+      }
+    } else {
+      if (wifiWasUp) {
+        wifiWasUp = false;
+        Serial.println("[WiFi] Connection lost — waiting for auto-reconnect.");
+        oledDirty = true;
+      }
+      if (now - lastReconnectNudge > 30000) {
+        lastReconnectNudge = now;
+        Serial.println("[WiFi] Not connected — nudging reconnect.");
+        WiFi.reconnect();
+      }
     }
   }
-
-  uint32_t now = millis();
 
   // OLED page cycling
   if (oledOk && (now - oledPageAt) >= OLED_PAGE_MS) {
