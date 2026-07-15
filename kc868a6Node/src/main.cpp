@@ -101,6 +101,13 @@ static const uint32_t  OLED_PAGE_MS = 4000;
 #define PIN_WATER_ADC 39   // ANALOG_A2 (0-5V)
 #define PIN_ONEWIRE   32   // 1-Wire Bus 1 (DS18B20)
 
+// GPIO0 doubles as the onboard BOOT button. It only matters for entering
+// the UART download mode while held during power-on/reset; once the app is
+// running it's a free, debounced input we reuse for a runtime factory reset
+// (recovers a device stuck retrying bad WiFi credentials with no AP to rejoin).
+#define PIN_FACTORY_RESET       0
+#define FACTORY_RESET_HOLD_MS   5000
+
 static OneWire          oneWire(PIN_ONEWIRE);
 static DallasTemperature tempSensor(&oneWire);
 
@@ -135,7 +142,7 @@ Preferences prefs;
 
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "kc868a6Node";
-static const char* FW_VERSION       = "1.0.4";
+static const char* FW_VERSION       = "1.0.5";
 static String       _otaTopic;
 
 static void performOTA(const String& url) {
@@ -943,6 +950,34 @@ static void setupRoutes_STA() {
   Serial.println("[STA] Web server started (Basic Auth ON).");
 }
 
+// -------------------- Factory reset (BOOT button) --------------------
+static uint32_t btnHeldSince  = 0;
+static bool     btnResetFired = false;
+
+static void factoryResetWifi() {
+  Serial.println("[BTN] Held 5s — factory reset: clearing WiFi/MQTT/provisioning config.");
+  prefs.begin("wifi", false); prefs.clear(); prefs.end();
+  prefs.begin("mqtt", false); prefs.clear(); prefs.end();
+  prefs.begin("prov", false); prefs.clear(); prefs.end();
+  delay(200);
+  ESP.restart();
+}
+
+static void pollFactoryResetButton() {
+  bool pressed = (digitalRead(PIN_FACTORY_RESET) == LOW);
+  uint32_t now = millis();
+  if (pressed) {
+    if (btnHeldSince == 0) btnHeldSince = now;
+    if (!btnResetFired && (now - btnHeldSince) >= FACTORY_RESET_HOLD_MS) {
+      btnResetFired = true;
+      factoryResetWifi();
+    }
+  } else {
+    btnHeldSince  = 0;
+    btnResetFired = false;
+  }
+}
+
 // -------------------- FS listing --------------------
 static void listFiles(const char* dir) {
   File root = LittleFS.open(dir);
@@ -957,6 +992,8 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   Serial.println("\n=== KC868-A6 boot ===");
+
+  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
 
   Wire.begin(I2C_SDA, I2C_SCL);
 
@@ -1064,6 +1101,8 @@ static const uint32_t TELEMETRY_INTERVAL_MS    = 30000;
 static const uint32_t SENSOR_INTERVAL_MS       = 10000;
 static const uint32_t DS18B20_CONV_MS          = 800;
 void loop() {
+  pollFactoryResetButton();
+
   if (modeNow == MODE_AP) {
     dns.processNextRequest();
     delay(10);

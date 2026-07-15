@@ -34,6 +34,7 @@ ESP32-based 6-relay controller firmware for the [KinCony KC868-A6](https://www.k
 - Telemetry published to MQTT every 30 s, and on every relay/input state change
 - Basic Auth on all web UI routes (`admin` / `kc868a6`)
 - Self-healing Wi-Fi: retries STA indefinitely on connection loss, never falls back to AP mode once provisioned
+- **Factory reset button** — hold the onboard BOOT button (GPIO0) for 5 seconds at runtime to clear saved WiFi/MQTT/provisioning config and reboot into the AP setup portal (recovers a device stuck with bad WiFi credentials)
 - **OTA updates** — subscribes to `<base>/ota/command` (MQTT, retained); on receiving `{"version":"x.y.z","url":"..."}` with a version different from the running firmware, downloads and flashes the `.bin` via `HTTPUpdate` over TLS, then reboots. Triggered from the platform dashboard (Devices → device → OTA) after uploading a `.bin` under Dashboard → Firmware.
 
 ---
