@@ -1,6 +1,6 @@
 # IoT Platform — Node Firmware Collection
 
-A collection of ESP32/ESP32-C3 firmware projects for MQTT-based IoT sensor and control nodes. Each node is a self-contained PlatformIO project that connects to the [IoT Platform](https://iot.unitani.com) and publishes data over MQTT.
+A collection of ESP32/ESP32-C3/ESP32-S3 firmware projects for MQTT-based IoT sensor and control nodes. Each node is a self-contained PlatformIO project that connects to the [IoT Platform](https://iot.unitani.com) and publishes data over MQTT.
 
 ---
 
@@ -12,6 +12,7 @@ A collection of ESP32/ESP32-C3 firmware projects for MQTT-based IoT sensor and c
 | `hydroNode` | ESP32-C3 SuperMini | Hydroponics node — EC + water level + temperature (DS18B20) |
 | `NPKv2Node` | ESP32 Dev Board | Soil NPK/pH/conductivity/temp/humidity via RS485 Modbus sensor |
 | `phSensorNode` | ESP32-C3 SuperMini | pH sensor with calibration, MQTT, and OTA updates |
+| `rs485Node` | Waveshare ESP32-S3-RS485-CAN | Temp/humidity, CO2, EC/TDS, or pH sensor over RS485 Modbus (sensor selectable at runtime) |
 | `switch4Node` | ESP32 Dev Board | 4-channel relay controller with dry-contact inputs |
 | `switchNode` | ESP32 Dev Board | Single relay controller with dry-contact input |
 | `tempNode` | ESP32 Dev Board | Temperature and humidity node (DHT22 or DS18B20) |
@@ -39,6 +40,19 @@ All nodes share these capabilities:
 - [PlatformIO](https://platformio.org/) — install via VS Code extension or CLI
 - Python 3.x (required by PlatformIO)
 
+### Software / Key Libraries
+
+Each node pulls its own `lib_deps` via `platformio.ini` — no manual install needed. Notable ones:
+
+| Library | Used by |
+|---|---|
+| bblanchon/ArduinoJson | all nodes |
+| esphome/ESPAsyncWebServer + esphome/AsyncTCP | all nodes (web UI) |
+| 4-20ma/ModbusMaster | NPKv2Node, rs485Node (RS485 Modbus RTU) |
+| adafruit/Adafruit SSD1306 + GFX | ecSensorNode, hydroNode, phSensorNode, tempNode, WaterLevelNode (LCD) |
+| paulstoffregen/OneWire + milesburton/DallasTemperature | hydroNode, tempNode (DS18B20) |
+| tzapu/WiFiManager | switch4Node, switchNode |
+
 ### Hardware
 
 | Component | Used by |
@@ -51,6 +65,11 @@ All nodes share these capabilities:
 | DS18B20 temperature sensor | hydroNode, tempNode |
 | DHT22 temperature & humidity sensor | tempNode (optional, selectable) |
 | CWT-SOIL-NPKPHCTH-S + MAX485 module | NPKv2Node |
+| Waveshare ESP32-S3-RS485-CAN | rs485Node |
+| CWT-TH03S-H temp/humidity sensor (RS485 Modbus) | rs485Node |
+| CWT CO2+Temp+Humidity sensor (RS485 Modbus) | rs485Node |
+| CWT-BL EC/TDS transmitter (RS485 Modbus) | rs485Node |
+| CWT-BL pH transmitter (RS485 Modbus) | rs485Node |
 | 4-channel relay module | switch4Node |
 | Single relay module | switchNode |
 
@@ -77,7 +96,7 @@ Or open the folder directly in VS Code with the PlatformIO extension installed.
 
 ### 3. Upload the filesystem (web UI files)
 
-For nodes that include a `data/www/` folder (hydroNode, switch4Node, switchNode, WaterLevelNode):
+For nodes that include a `data/www/` folder (hydroNode, rs485Node, switch4Node, switchNode, WaterLevelNode):
 
 ```bash
 pio run -t uploadfs
@@ -141,6 +160,18 @@ pH sensor node with 2-point calibration.
 
 - **Buttons:** LIGHT/MODE · CAL/UP · DOWN/ENTER
 - **API endpoints:** `/api/status` · `/api/ph` · `/api/cal`
+
+---
+
+### rs485Node
+
+Reads a Modbus RTU sensor over RS485 on a Waveshare ESP32-S3-RS485-CAN DIN-rail module. Supports four sensor types — only one is ever wired to the bus at a time, and which one is active is selected at runtime from a dropdown on the web dashboard (no reboot needed).
+
+- **Sensors:** CWT-TH03S-H (temp/humidity, 4800 baud) · CWT CO2+Temp+Humidity integrated sensor (4800 baud) · CWT-BL EC/TDS transmitter (9600 baud) · CWT-BL pH transmitter (9600 baud) — all default to Modbus slave ID 1, so no ID reassignment is needed; the firmware auto-switches the UART baud rate when the selected sensor's group changes
+- **Pins:** RS485 TX=17 · RX=18 · DE/RE=21 · BOOT button=0 (hold 5s at runtime → factory reset)
+- **Web UI auth:** `admin` / `rs485node`
+- **API endpoints:** `/api/status` · `/api/data` · `/api/sensor` (GET/POST to switch active sensor)
+- See [`rs485Node/README.md`](rs485Node/README.md) for full details.
 
 ---
 

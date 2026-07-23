@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RS485 Node Setup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+    .wrap { width: 100%; max-width: 420px; margin: 0 auto; }
+    .card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08), inset 0 0 0 0.5px rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.3);
+      animation: fadeIn 0.6s cubic-bezier(0.23,1,0.32,1);
+    }
+    h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; text-align: center; }
+    .subtitle { color: #86868b; font-size: 14px; text-align: center; margin-bottom: 24px; line-height: 1.4; }
+    .device-info {
+      background: rgba(0,0,0,0.03);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(0,0,0,0.05);
+      font-size: 13px;
+      color: #86868b;
+      line-height: 1.8;
+    }
+    .device-info .mono { font-family: ui-monospace, monospace; color: #1d1d1f; font-weight: 500; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 14px; font-weight: 500; color: #1d1d1f; margin-bottom: 8px; }
+    input, select {
+      width: 100%; padding: 14px 16px; font-size: 16px;
+      border-radius: 12px; border: 1px solid #d2d2d7;
+      background: rgba(255,255,255,0.9); color: #1d1d1f;
+      transition: all 0.25s ease; outline: none;
+    }
+    input:focus, select:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); background: #fff; }
+    input::placeholder { color: #c7c7cc; }
+    .pw { position: relative; }
+    .pw input { padding-right: 50px; }
+    .icon-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: transparent; border: none; width: 38px; height: 38px;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #8e8e93; transition: all 0.2s ease;
+    }
+    .icon-btn:hover { background: rgba(0,0,0,0.05); color: #1d1d1f; }
+    .icon-btn svg { width: 20px; height: 20px; }
+
+    .net-list {
+      border: 1px solid #d2d2d7; border-radius: 12px; overflow: hidden;
+      margin-bottom: 4px; max-height: 200px; overflow-y: auto;
+    }
+    .net-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; cursor: pointer; transition: background 0.15s;
+      border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 15px;
+    }
+    .net-item:last-child { border-bottom: none; }
+    .net-item:hover { background: rgba(0,122,255,0.05); }
+    .net-item.selected { background: rgba(0,122,255,0.08); color: #007aff; font-weight: 500; }
+    .net-rssi { font-size: 12px; color: #86868b; }
+    .net-lock { font-size: 12px; color: #c7c7cc; margin-left: 6px; }
+    .scan-btn {
+      font-size: 13px; color: #007aff; background: none; border: none;
+      cursor: pointer; padding: 4px 0; margin-bottom: 8px;
+    }
+    .scan-btn:disabled { color: #c7c7cc; }
+
+    .actions { display: flex; gap: 10px; margin-top: 8px; }
+    .btn {
+      flex: 1; padding: 14px 12px; font-size: 15px; font-weight: 600;
+      border-radius: 12px; cursor: pointer; transition: all 0.25s ease;
+      border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.04);
+      color: #1d1d1f; letter-spacing: -0.2px;
+    }
+    .btn:hover { background: rgba(0,0,0,0.07); }
+    .btn:active { transform: scale(0.98); }
+    .btn.primary {
+      background: linear-gradient(135deg, #007aff, #0056d6); color: white;
+      border-color: transparent; box-shadow: 0 4px 14px rgba(0,122,255,0.3);
+    }
+    .btn.primary:hover { background: linear-gradient(135deg, #0056d6, #0041a8); }
+    .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .status { margin-top: 14px; font-size: 13px; color: #86868b; min-height: 18px; text-align: center; }
+    .status.ok { color: #34c759; }
+    .status.err { color: #ff3b30; }
+    .hint {
+      margin-top: 18px; padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.02);
+      color: #86868b; font-size: 13px; line-height: 1.4;
+    }
+    .footer { margin-top: 18px; text-align: center; color: #c7c7cc; font-size: 12px; font-family: ui-monospace, monospace; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>RS485 Node Setup</h2>
+      <p class="subtitle">Connect the RS485 node to your Wi-Fi network</p>
+
+      <div class="device-info">
+        Device IP: <span class="mono">192.168.4.1</span><br>
+        After connecting: <span class="mono" id="devHostname">rs485node-????.local</span>
+      </div>
+
+      <div class="form-group">
+        <label>Wi-Fi Network</label>
+        <button class="scan-btn" id="btnScan" type="button">⟳ Scan for networks</button>
+        <div class="net-list" id="netList" style="display:none"></div>
+        <input id="ssid" autocomplete="off" spellcheck="false" placeholder="Or type network name…" style="margin-top:8px" />
+      </div>
+
+      <div class="form-group">
+        <label for="pass">Password</label>
+        <div class="pw">
+          <input id="pass" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <button class="icon-btn" type="button" id="showPassBtn" aria-label="Show password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnSave" type="button">Save &amp; Reboot</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="hint">
+        <b>After saving:</b> the node reboots and joins your Wi-Fi. Open
+        <b id="hintUrl">http://rs485node-????.local</b> in your browser — works on
+        iOS, Android, macOS and Windows 10+. If it fails to connect it returns to AP mode.
+      </div>
+    </div>
+    <div class="footer">/api/scan · /api/wifi · /api/status</div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const statusEl = $("status");
+
+    function setStatus(msg, cls = "") {
+      statusEl.className = "status " + cls;
+      statusEl.textContent = msg || "";
+    }
+
+    fetch("/api/status", { cache: "no-store" })
+      .then(r => r.json())
+      .then(j => {
+        if (j.hostname) {
+          $("devHostname").textContent = j.hostname;
+          $("hintUrl").textContent = "http://" + j.hostname;
+        }
+      }).catch(() => {});
+
+    $("showPassBtn").addEventListener("click", () => {
+      const p = $("pass");
+      p.type = p.type === "password" ? "text" : "password";
+    });
+
+    async function doScan() {
+      $("btnScan").disabled = true;
+      $("btnScan").textContent = "Scanning…";
+      $("netList").style.display = "none";
+      $("netList").innerHTML = "";
+      try {
+        let nets = [];
+        for (let attempt = 0; attempt < 20; attempt++) {
+          await new Promise(r => setTimeout(r, 500));
+          const r = await fetch("/api/scan", { cache: "no-store" });
+          const j = await r.json();
+          if (!j.scanning) { nets = j.networks || []; break; }
+        }
+        nets.sort((a, b) => b.rssi - a.rssi);
+        if (!nets.length) {
+          $("netList").innerHTML = '<div class="net-item" style="color:#86868b">No networks found</div>';
+        } else {
+          nets.forEach(n => {
+            const div = document.createElement("div");
+            div.className = "net-item";
+            const rssi = n.rssi > -50 ? "▂▄▆█" : n.rssi > -65 ? "▂▄▆_" : n.rssi > -75 ? "▂▄__" : "▂___";
+            div.innerHTML = `<span>${n.ssid}</span><span class="net-rssi">${rssi}<span class="net-lock">${n.secure ? "🔒" : ""}</span></span>`;
+            div.addEventListener("click", () => {
+              document.querySelectorAll(".net-item").forEach(el => el.classList.remove("selected"));
+              div.classList.add("selected");
+              $("ssid").value = n.ssid;
+              if (n.secure) $("pass").focus();
+            });
+            $("netList").appendChild(div);
+          });
+        }
+        $("netList").style.display = "block";
+      } catch(e) {
+        setStatus("Scan failed: " + e.message, "err");
+      }
+      $("btnScan").disabled = false;
+      $("btnScan").textContent = "⟳ Scan for networks";
+    }
+    $("btnScan").addEventListener("click", doScan);
+
+    $("btnSave").addEventListener("click", async () => {
+      const ssid = $("ssid").value.trim();
+      const pass = $("pass").value;
+      if (!ssid) { setStatus("Please enter or select a network.", "err"); return; }
+      $("btnSave").disabled = true;
+      setStatus("Saving…");
+      try {
+        const r = await fetch("/api/wifi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ssid, pass })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.ok === false) throw new Error(j.err || "HTTP " + r.status);
+        const hn = $("devHostname").textContent;
+        setStatus("Saved! Rebooting… reconnect to your Wi-Fi.", "ok");
+        setTimeout(() => setStatus("Then open: http://" + hn, "ok"), 2000);
+      } catch(e) {
+        setStatus("Failed: " + e.message, "err");
+        $("btnSave").disabled = false;
+      }
+    });
+
+    doScan();
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>RS485 Node</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="status-bar">
+            <div class="status-left">
+                <span class="status-dot">●</span>
+                <span class="status-text">RS485 Node</span>
+                <span class="status-dot">●</span>
+            </div>
+            <div class="status-right">
+                <span class="wifi-indicator" id="wifiIndicator">◉</span>
+                <span class="mqtt-indicator" id="mqttIndicator">◉</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="hero">
+                <div class="hero-icon">
+                    <span class="liquid-drop">🌡️</span>
+                </div>
+                <h1 class="hero-title">RS485 Node</h1>
+                <div class="hero-subtitle">
+                    <span class="version" id="fwVersion">Ver - 1.0.0</span>
+                    <span class="separator">•</span>
+                    <span class="ip-address" id="ipAddress">192.168.4.1</span>
+                </div>
+            </div>
+
+            <div class="sensor-select">
+                <label for="sensorSelect">Active sensor</label>
+                <select id="sensorSelect" onchange="selectSensor(this.value)">
+                    <option value="th">CWT TH03S</option>
+                    <option value="co2">CWT CO2</option>
+                    <option value="ec">CWT-BL EC/TDS</option>
+                    <option value="ph">CWT-BL pH</option>
+                </select>
+            </div>
+
+            <div class="sensors-grid" id="thCards">
+                <div class="sensor-card temp-card">
+                    <div class="card-header">
+                        <span class="card-icon">🌡️</span>
+                        <span class="card-title">Temperature</span>
+                    </div>
+                    <div class="card-value" id="tempValue">--.-</div>
+                    <div class="card-unit">°C</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT-TH03S-H</span>
+                        <span class="cal-badge" id="thBadge">● Live</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card">
+                    <div class="card-header">
+                        <span class="card-icon">💧</span>
+                        <span class="card-title">Humidity</span>
+                    </div>
+                    <div class="card-value" id="humValue">--.-</div>
+                    <div class="card-unit">%RH</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT-TH03S-H</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sensors-grid" id="co2Cards" style="display:none">
+                <div class="sensor-card co2-card">
+                    <div class="card-header">
+                        <span class="card-icon">🫧</span>
+                        <span class="card-title">CO2</span>
+                    </div>
+                    <div class="card-value" id="co2Value">--</div>
+                    <div class="card-unit">ppm</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT CO2 Sensor</span>
+                        <span class="cal-badge" id="co2Badge">● Live</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card temp-card">
+                    <div class="card-header">
+                        <span class="card-icon">🌡️</span>
+                        <span class="card-title">Temperature</span>
+                    </div>
+                    <div class="card-value" id="co2TempValue">--.-</div>
+                    <div class="card-unit">°C</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT CO2 Sensor</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card">
+                    <div class="card-header">
+                        <span class="card-icon">💧</span>
+                        <span class="card-title">Humidity</span>
+                    </div>
+                    <div class="card-value" id="co2HumValue">--.-</div>
+                    <div class="card-unit">%RH</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT CO2 Sensor</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sensors-grid" id="ecCards" style="display:none">
+                <div class="sensor-card ec-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚡</span>
+                        <span class="card-title">EC / TDS</span>
+                    </div>
+                    <div class="card-value" id="ecValue">--.-</div>
+                    <div class="card-unit">µS/cm or PPM</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT-BL EC/TDS</span>
+                        <span class="cal-badge" id="ecBadge">● Live</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sensors-grid" id="phCards" style="display:none">
+                <div class="sensor-card ph-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚗️</span>
+                        <span class="card-title">pH</span>
+                    </div>
+                    <div class="card-value" id="phValue">--.-</div>
+                    <div class="card-unit">pH</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT-BL pH</span>
+                        <span class="cal-badge" id="phBadge">● Live</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card temp-card">
+                    <div class="card-header">
+                        <span class="card-icon">🌡️</span>
+                        <span class="card-title">Temperature</span>
+                    </div>
+                    <div class="card-value" id="phTempValue">--.-</div>
+                    <div class="card-unit">°C</div>
+                    <div class="card-footer">
+                        <span class="voltage">CWT-BL pH</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-item" onclick="navigateTo('mqtt')">
+                <span class="nav-icon">📡</span>
+                <span class="nav-label">MQTT</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="mqttModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Connect to Platform</h2>
+                <button class="close-button" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13px; color:#86868b; margin-bottom:16px;">
+                    Get your Topic and API Key from the IoT Platform dashboard at <b>iot.unitani.com</b>
+                </p>
+
+                <div class="prov-status" id="provStatus"></div>
+
+                <div id="provForm">
+                    <div class="setting-row">
+                        <label>Topic</label>
+                        <input type="text" id="provTopic" placeholder="e.g. myfarm/rs485-1">
+                    </div>
+                    <div class="setting-row">
+                        <label>API Key</label>
+                        <input type="password" id="provApiKey" placeholder="Paste from iot.unitani.com">
+                    </div>
+                    <button class="save-button" id="provBtn" onclick="connectToPlatform()">Connect</button>
+                    <div class="wizard-msg" id="provMsg"></div>
+                </div>
+
+                <button class="save-button" id="reproveBtn" style="background:#ff9500; display:none; margin-top:8px;" onclick="clearAndReprovision()">Clear & Reprovision</button>
+
+                <div class="connection-status" id="mqttConnectionStatus" style="margin-top:16px;">
+                    <span class="status-dot offline"></span>
+                    <span id="statusText">Disconnected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
