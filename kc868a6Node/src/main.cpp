@@ -117,7 +117,16 @@ static float waterPercent = NAN;
 static float tempC        = NAN;
 
 // EC two-point calibration: EC (mS/cm) = (ecVoltage - ecOffset) * ecSlope
-// Calibrate by measuring probe voltage in two known standard solutions.
+// This endpoint does NOT compute ecSlope/ecOffset for you — measure probe
+// voltage in two known standard solutions (V_low/EC_low, V_high/EC_high)
+// and solve externally:
+//   ecSlope  = (EC_high - EC_low) / (V_high - V_low)
+//   ecOffset = V_low - EC_low / ecSlope
+// It's plain linear algebra on two points, so the order you measure the
+// standards in (low-first or high-first) does not affect the result —
+// only the two (voltage, known EC) pairs matter. Just avoid picking two
+// standards whose voltages are too close together, since that inflates
+// ecSlope and can push it past the 1000 mS/cm/V cap enforced below.
 static float ecSlope  = 1.0f;
 static float ecOffset = 0.0f;
 
@@ -905,10 +914,10 @@ static void setupRoutes_STA() {
   });
 
   // Sensor calibration endpoint: POST any combination of:
-  //   ec_slope=<float>    EC slope  (mS/cm per volt, must be > 0)
-  //   ec_offset=<float>   EC offset (volts at zero EC, -5 to +5)
-  //   water_v_min=<float> Voltage when tank is empty (0–4.9 V)
-  //   water_v_max=<float> Voltage when tank is full  (0.1–5 V, must be > water_v_min)
+  //   ec_slope=<float>    EC slope  (mS/cm per volt, must be > 0) — derived value, see above
+  //   ec_offset=<float>   EC offset (volts at zero EC, -5 to +5) — derived value, see above
+  //   water_v_min=<float> Voltage when tank is empty (0–4.9 V) — raw ADC reading, no derivation needed
+  //   water_v_max=<float> Voltage when tank is full  (0.1–5 V, must be > water_v_min) — raw ADC reading
   server.on("/api/sensors/cal", HTTP_POST, [](AsyncWebServerRequest *r){
     if (!requireAuthOr401(r)) return;
     bool changed = false;
