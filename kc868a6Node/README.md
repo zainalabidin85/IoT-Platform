@@ -103,6 +103,8 @@ The dashboard includes guided wizards for both sensors. Calibration values are s
 2. Rinse, submerge in **solution 2** (e.g. 12.88 mS/cm) → tap **Capture Reading** → enter the known EC value
 3. Review the computed slope and offset → tap **Save**
 
+The wizard solves `slope`/`offset` as two simultaneous equations from the two `(voltage, known EC)` points, so it doesn't matter which solution you capture first — a low-EC-first run and a high-EC-first run produce the same result. Just use two standards whose voltages aren't too close together (a narrow spread inflates the slope and can trip the 1000 mS/cm/V cap).
+
 **Water level calibration**
 1. With the tank **empty** → tap **Capture Empty Level**
 2. With the tank **full** → tap **Capture Full Level**
