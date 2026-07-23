@@ -72,6 +72,13 @@ const int inputPins[4] = {INPUT1_PIN, INPUT2_PIN, INPUT3_PIN, INPUT4_PIN};
 
 #define RELAY_ACTIVE_LOW 0   // 0 = ACTIVE HIGH, 1 = ACTIVE LOW
 
+// GPIO0 doubles as the onboard BOOT button. It only matters for entering
+// the UART download mode while held during power-on/reset; once the app is
+// running it's a free, debounced input we reuse for a runtime factory reset
+// (recovers a device stuck retrying bad WiFi credentials with no AP to rejoin).
+#define PIN_FACTORY_RESET       0
+#define FACTORY_RESET_HOLD_MS   5000
+
 // -------------------- FS/DNS ------------------
 static const char* FS_ROOT = "/www";
 static const byte DNS_PORT = 53;
@@ -87,14 +94,16 @@ static esp_mqtt_client_handle_t mqttHandle    = nullptr;
 static volatile bool             mqttConnected = false;
 Preferences prefs;
 
-static const char* FW_VERSION       = "1.0.0";
+static const char* FW_VERSION       = "1.0.3";
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "switch4Node";
 static String _otaTopic;
+static String pendingOtaUrl;   // set from MQTT callback, consumed in loop()
 
 static void performOTA(const String& url) {
   Serial.printf("[OTA] Starting from: %s\n", url.c_str());
-  WiFiClient httpClient;
+  WiFiClientSecure httpClient;
+  httpClient.setInsecure();
   httpUpdate.rebootOnUpdate(true);
   auto ret = httpUpdate.update(httpClient, url);
   if (ret == HTTP_UPDATE_FAILED)
@@ -303,6 +312,7 @@ static void publishTelemetry() {
     snprintf(key, sizeof(key), "input%d", i + 1);
     doc[key] = (inputs[i].stable == LOW) ? 1 : 0;
   }
+  doc["fw"] = FW_VERSION;
   char buf[256];
   serializeJson(doc, buf, sizeof(buf));
   esp_mqtt_client_publish(mqttHandle, (baseTopic + "/telemetry").c_str(), buf, 0, 0, 0);
@@ -355,6 +365,15 @@ static void loadMqttCfg() {
     if (host.length()) mqttCfg.uri = "mqtt://" + host + ":" + String(port);
   }
   prefs.end();
+
+  // Fix 3: if previously provisioned, always enable MQTT
+  prefs.begin("prov", true);
+  bool provisioned = prefs.getBool("done", false);
+  prefs.end();
+  if (provisioned && mqttCfg.uri.length() > 0) {
+    mqttCfg.enabled = true;
+  }
+
   applyTopics();
 }
 
@@ -521,8 +540,11 @@ static void mqttOnMessage(const String& topic, const String& msg) {
       const char* ver = doc["version"];
       const char* url = doc["url"];
       if (url && ver && String(ver) != FW_VERSION) {
-        Serial.printf("[OTA] New fw %s (have %s)\n", ver, FW_VERSION);
-        performOTA(url);
+        Serial.printf("[OTA] New fw %s (have %s) — queued for main loop\n", ver, FW_VERSION);
+        // Don't block here: this callback runs on the esp_mqtt_client task,
+        // which has a small stack unsuited to a long TLS download + flash
+        // write. Defer the actual update to loop() on the main task.
+        pendingOtaUrl = url;
       }
     }
     return;
@@ -584,7 +606,7 @@ static void mqttStart() {
   cfg.lwt_qos                  = 1;
   cfg.lwt_retain               = 1;
   cfg.reconnect_timeout_ms     = 5000;
-  cfg.cert_pem                 = ISRG_ROOT_X1;
+  // Fix 6: cert_pem removed — platform returns ws:// URI (plain WebSocket)
 
   Serial.printf("[MQTT] Starting — uri=%s user=%s base=%s\n",
                 mqttCfg.uri.c_str(), mqttCfg.user.c_str(), baseTopic.c_str());
@@ -659,12 +681,19 @@ function showMsg(text, ok) {
 
 static void doProvision(const String& topic, const String& apiKey,
                         AsyncWebServerRequest* r) {
+  // Fix 1: fail fast if WiFi not connected (covers AP mode and STA-disconnected)
+  if (WiFi.status() != WL_CONNECTED) {
+    r->send(400, "application/json", "{\"ok\":false,\"error\":\"not_connected\"}");
+    return;
+  }
+
   WiFiClientSecure tls;
   tls.setInsecure();
   HTTPClient http;
 
   String url = String(PLATFORM_API_URL) + "/api/provision";
   http.begin(tls, url);
+  http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);  // Fix 2
   http.addHeader("Content-Type", "application/json");
   http.addHeader("x-api-key", apiKey);
 
@@ -674,7 +703,9 @@ static void doProvision(const String& topic, const String& apiKey,
   String bodyStr;
   serializeJson(body, bodyStr);
 
+  Serial.printf("[PROV] POST %s\n", url.c_str());
   int code = http.POST(bodyStr);
+  Serial.printf("[PROV] HTTP %d\n", code);
 
   if (code == 200 || code == 201) {
     String resp = http.getString();
@@ -689,6 +720,14 @@ static void doProvision(const String& topic, const String& apiKey,
         mqttCfg.pass       = cfg["pass"]  | "";
         mqttCfg.cmdTopic   = cfg["topic"] | topic.c_str();
         mqttCfg.stateTopic = "";
+
+        // Fix 5: log parsed provisioning result
+        Serial.printf("[PROV] uri=%s\n", mqttCfg.uri.c_str());
+        Serial.printf("[PROV] user=%s\n", mqttCfg.user.c_str());
+        Serial.printf("[PROV] pass=%s (len=%d)\n",
+                      mqttCfg.pass.length() ? "***" : "(empty)", mqttCfg.pass.length());
+        Serial.printf("[PROV] topic=%s\n", mqttCfg.cmdTopic.c_str());
+
         saveMqttCfg();
         applyTopics();
         mqttStart();
@@ -756,11 +795,19 @@ static void setupRoutes_AP() {
     r->send(200, "application/json", json);
   });
 
-  // WiFi scan endpoint
+  // Fix 4: async WiFi scan — avoids blocking web server (WDT risk)
   server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest *r){
-    Serial.println("[AP] Scanning WiFi networks...");
-    int n = WiFi.scanNetworks();
-    String json = "{\"networks\":[";
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) {
+      r->send(200, "application/json", "{\"scanning\":true,\"networks\":[]}");
+      return;
+    }
+    if (n < 0) {
+      WiFi.scanNetworks(true);
+      r->send(200, "application/json", "{\"scanning\":true,\"networks\":[]}");
+      return;
+    }
+    String json = "{\"scanning\":false,\"networks\":[";
     for (int i = 0; i < n; i++) {
       if (i > 0) json += ",";
       json += "{\"ssid\":\"" + WiFi.SSID(i) + "\",";
@@ -768,8 +815,8 @@ static void setupRoutes_AP() {
       json += "\"encryption\":\"" + String(WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "OPEN" : "SECURE") + "\"}";
     }
     json += "]}";
-    r->send(200, "application/json", json);
     WiFi.scanDelete();
+    r->send(200, "application/json", json);
   });
 
   // WiFi save endpoint
@@ -936,6 +983,34 @@ static void setupRoutes_STA() {
   Serial.println("[STA] Web server started (Basic Auth ON).");
 }
 
+// -------------------- Factory reset (BOOT button) --------------------
+static uint32_t btnHeldSince  = 0;
+static bool     btnResetFired = false;
+
+static void factoryResetWifi() {
+  Serial.println("[BTN] Held 5s — factory reset: clearing WiFi/MQTT/provisioning config.");
+  prefs.begin("wifi", false); prefs.clear(); prefs.end();
+  prefs.begin("mqtt", false); prefs.clear(); prefs.end();
+  prefs.begin("prov", false); prefs.clear(); prefs.end();
+  delay(200);
+  ESP.restart();
+}
+
+static void pollFactoryResetButton() {
+  bool pressed = (digitalRead(PIN_FACTORY_RESET) == LOW);
+  uint32_t now = millis();
+  if (pressed) {
+    if (btnHeldSince == 0) btnHeldSince = now;
+    if (!btnResetFired && (now - btnHeldSince) >= FACTORY_RESET_HOLD_MS) {
+      btnResetFired = true;
+      factoryResetWifi();
+    }
+  } else {
+    btnHeldSince  = 0;
+    btnResetFired = false;
+  }
+}
+
 // -------------------- FS listing (debug) --------------------
 static void listFiles(const char* dirname) {
   File root = LittleFS.open(dirname);
@@ -962,6 +1037,8 @@ void setup() {
   Serial.println("=== Switch4Node boot ===");
 
   WiFi.onEvent(onWiFiEvent);
+
+  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
 
   // Initialize relay pins (avoid calling setRelay() before MQTT is connected)
   for (int i = 0; i < 4; i++) {
@@ -999,10 +1076,20 @@ void setup() {
   Serial.println("[ID] mDNS host:  " + mdnsHost);
   Serial.println(String("[AUTH] ") + (BASIC_AUTH_ON ? "ENABLED" : "disabled") + " user=" + BASIC_USER);
 
-  if (connectSTA(20000)) {
+  // A saved SSID means this device was already provisioned. Even if the
+  // initial connect attempt times out (e.g. router still booting after a
+  // power outage), stay in STA mode and let WiFi.setAutoReconnect(true)
+  // (set in connectSTA()) keep retrying in the background — never treat a
+  // temporarily unreachable router as "unprovisioned" and drop to AP mode.
+  bool staConnected = connectSTA(20000);
+  if (staConnected || wifiCfg.ssid.length()) {
     modeNow = MODE_STA;
-    Serial.println("[WiFi] STA connected, IP: " + WiFi.localIP().toString());
-    startMDNS();
+    if (staConnected) {
+      Serial.println("[WiFi] STA connected, IP: " + WiFi.localIP().toString());
+      startMDNS();
+    } else {
+      Serial.println("[WiFi] STA not connected yet — will keep retrying in background.");
+    }
     setupRoutes_STA();
     mqttStart();
   } else {
@@ -1013,10 +1100,39 @@ void setup() {
 }
 
 void loop() {
+  pollFactoryResetButton();
+
   if (modeNow == MODE_AP) {
     dns.processNextRequest();
     delay(10);
     return;
+  }
+
+  // Pending OTA — run on the main task (not the MQTT callback) so the
+  // blocking TLS download + flash write has a normal stack to work with.
+  if (pendingOtaUrl.length()) {
+    String url = pendingOtaUrl;
+    pendingOtaUrl = "";
+    performOTA(url);
+  }
+
+  // MODE_STA self-heal: start mDNS once WiFi finally connects (covers the
+  // case where setup() entered STA mode before the initial connect
+  // succeeded), and nudge WiFi.reconnect() periodically as a safety net
+  // in case autoReconnect stalls. Never falls back to AP mode here.
+  {
+    static bool     mdnsStarted   = false;
+    static uint32_t lastReconnect = 0;
+    if (WiFi.status() == WL_CONNECTED) {
+      if (!mdnsStarted) {
+        startMDNS();
+        mdnsStarted = true;
+      }
+    } else if (millis() - lastReconnect > 30000) {
+      lastReconnect = millis();
+      Serial.println("[WiFi] Not connected — nudging reconnect.");
+      WiFi.reconnect();
+    }
   }
 
   // Check all 4 inputs with debouncing
