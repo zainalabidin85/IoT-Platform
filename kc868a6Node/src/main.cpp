@@ -142,8 +142,9 @@ Preferences prefs;
 
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "kc868a6Node";
-static const char* FW_VERSION       = "1.0.5";
+static const char* FW_VERSION       = "1.0.7";
 static String       _otaTopic;
+static String        pendingOtaUrl;   // set from MQTT callback, consumed in loop()
 
 static void performOTA(const String& url) {
   Serial.printf("[OTA] Starting from: %s\n", url.c_str());
@@ -393,7 +394,8 @@ static void updateOLED() {
       display.print((inputs[i].stable == LOW) ? '*' : '.');
 
     display.setCursor(0, 54);
-    display.print(mdnsHost);
+    display.print("FW: ");
+    display.print(FW_VERSION);
   } else {
     // Page 1 — Sensor readings
     char buf[22];
@@ -559,8 +561,11 @@ static void mqttOnMessage(const String& topic, const String& msg) {
       const char* ver = doc["version"];
       const char* url = doc["url"];
       if (url && ver && String(ver) != FW_VERSION) {
-        Serial.printf("[OTA] New fw %s (have %s)\n", ver, FW_VERSION);
-        performOTA(url);
+        Serial.printf("[OTA] New fw %s (have %s) — queued for main loop\n", ver, FW_VERSION);
+        // Don't block here: this callback runs on the esp_mqtt_client task,
+        // which has a small stack unsuited to a long TLS download + flash
+        // write. Defer the actual update to loop() on the main task.
+        pendingOtaUrl = url;
       }
     }
     return;
@@ -1139,6 +1144,14 @@ void loop() {
         WiFi.reconnect();
       }
     }
+  }
+
+  // Pending OTA — run on the main task (not the MQTT callback) so the
+  // blocking TLS download + flash write has a normal stack to work with.
+  if (pendingOtaUrl.length()) {
+    String url = pendingOtaUrl;
+    pendingOtaUrl = "";
+    performOTA(url);
   }
 
   // OLED page cycling
