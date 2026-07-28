@@ -286,6 +286,15 @@ body {
     color: var(--accent-green);
 }
 
+/* Soil NPK card theme (small accent) */
+.npk-card .card-icon {
+    filter: drop-shadow(0 4px 10px rgba(162, 132, 94, 0.35));
+}
+.npk-card .cal-badge {
+    background: rgba(162, 132, 94, 0.12);
+    color: #a2845e;
+}
+
 .value-update {
     animation: valuePulse 0.2s ease;
 }
@@ -417,13 +426,32 @@ body {
 }
 
 .setting-row input[type="text"],
-.setting-row input[type="password"] {
+.setting-row input[type="password"],
+.setting-row input[type="number"] {
     padding: 8px 12px;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     font-size: 14px;
     width: 200px;
     background: rgba(255, 255, 255, 0.8);
+}
+
+.setting-row input[type="number"] {
+    width: 100px;
+    text-align: right;
+}
+
+.setting-row.settings-link {
+    cursor: pointer;
+}
+
+.setting-row.settings-link:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.setting-row .chevron {
+    color: var(--text-tertiary);
+    font-size: 18px;
 }
 
 /* Save Button */

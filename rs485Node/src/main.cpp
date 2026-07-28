@@ -2,6 +2,7 @@
  * rs485Node — Waveshare ESP32-S3-RS485-CAN
  *  - CWT-TH03S-H temperature/humidity probe (Modbus RTU, slave ID 1)
  *  - CWT CO2+Temp+Humidity integrated sensor (Modbus RTU, slave ID 1)
+ *  - RS-NPK-N01-TR soil NPK fertility sensor (Modbus RTU, slave ID 1)
  *
  * Only one sensor is ever physically wired to the bus at a time —
  * both ship with the same factory default slave ID (1), so no
@@ -39,7 +40,7 @@
 /**************************************************************
  * VERSION
  **************************************************************/
-static const char* FW_VERSION       = "1.0.0";
+static const char* FW_VERSION       = "1.2.0";
 static const uint8_t API_VERSION    = 1;
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "rs485node";
@@ -117,7 +118,7 @@ static const uint8_t SENSOR_SLAVE_ID = 1;  // factory default for all supported 
 // baud entry in sensorBaud(), a read branch in sensorTick(), a JSON block
 // in mqttPublishNow()/the /api/data route, and a matching <option> + card
 // grid + SENSOR_CARD_IDS entry in the dashboard (data/www/index.html, app.js).
-enum SensorType : uint8_t { SENSOR_TH = 0, SENSOR_CO2 = 1, SENSOR_EC = 2, SENSOR_PH = 3 };
+enum SensorType : uint8_t { SENSOR_TH = 0, SENSOR_CO2 = 1, SENSOR_EC = 2, SENSOR_PH = 3, SENSOR_NPK = 4 };
 static SensorType sensorType = SENSOR_TH;
 
 static const char* sensorTypeStr(SensorType t){
@@ -125,6 +126,7 @@ static const char* sensorTypeStr(SensorType t){
     case SENSOR_CO2: return "co2";
     case SENSOR_EC:  return "ec";
     case SENSOR_PH:  return "ph";
+    case SENSOR_NPK: return "npk";
     default:         return "th";
   }
 }
@@ -132,12 +134,13 @@ static SensorType sensorTypeFromStr(const String& s){
   if (s == "co2") return SENSOR_CO2;
   if (s == "ec")  return SENSOR_EC;
   if (s == "ph")  return SENSOR_PH;
+  if (s == "npk") return SENSOR_NPK;
   return SENSOR_TH;
 }
 
-// CWT-TH03S-H and the CO2 sensor default to 4800 baud; the CWT-BL EC/TDS
-// and pH transmitters default to 9600 baud — the UART must be
-// reconfigured when switching between the two groups.
+// CWT-TH03S-H, the CO2 sensor, and the RS-NPK-N01-TR default to 4800 baud;
+// the CWT-BL EC/TDS and pH transmitters default to 9600 baud — the UART
+// must be reconfigured when switching between the two groups.
 static uint32_t sensorBaud(SensorType t){
   return (t == SENSOR_EC || t == SENSOR_PH) ? 9600 : 4800;
 }
@@ -225,12 +228,36 @@ struct Sensors {
   float ph_value = NAN;              // from CWT-BL pH transmitter
   float ph_temp_c = NAN;
   bool  ph_valid = false;
+
+  float npk_n = NAN;                 // from RS-NPK-N01-TR soil sensor (mg/kg)
+  float npk_p = NAN;
+  float npk_k = NAN;
+  bool  npk_valid = false;
+};
+
+// User-adjustable calibration offsets, added to the raw reading in
+// sensorTick() before it's displayed, published, or stored. Lets the
+// field operator correct drift against a trusted reference without
+// re-flashing.
+struct CalOffsets {
+  float temp_c = 0;
+  float humidity_percent = 0;
+  float co2_ppm = 0;
+  float co2_temp_c = 0;
+  float co2_humidity_percent = 0;
+  float ec_tds_value = 0;
+  float ph_value = 0;
+  float ph_temp_c = 0;
+  float npk_n = 0;
+  float npk_p = 0;
+  float npk_k = 0;
 };
 
 static WifiStatus wifiSt;
 static MqttConfig mqttCfg;
 static MqttStatus mqttSt;
 static Sensors sens;
+static CalOffsets calOff;
 static bool apMode = false;
 
 /**************************************************************
@@ -425,6 +452,41 @@ static void saveSensorType(SensorType t){
 }
 
 /**************************************************************
+ * PREFERENCES: CALIBRATION OFFSETS
+ **************************************************************/
+static void loadOffsets(){
+  prefs.begin("caloff", true);
+  calOff.temp_c               = prefs.getFloat("temp", 0);
+  calOff.humidity_percent     = prefs.getFloat("hum", 0);
+  calOff.co2_ppm               = prefs.getFloat("co2", 0);
+  calOff.co2_temp_c           = prefs.getFloat("co2t", 0);
+  calOff.co2_humidity_percent = prefs.getFloat("co2h", 0);
+  calOff.ec_tds_value         = prefs.getFloat("ec", 0);
+  calOff.ph_value             = prefs.getFloat("ph", 0);
+  calOff.ph_temp_c            = prefs.getFloat("pht", 0);
+  calOff.npk_n                = prefs.getFloat("npkn", 0);
+  calOff.npk_p                = prefs.getFloat("npkp", 0);
+  calOff.npk_k                = prefs.getFloat("npkk", 0);
+  prefs.end();
+}
+
+static void saveOffsets(){
+  prefs.begin("caloff", false);
+  prefs.putFloat("temp", calOff.temp_c);
+  prefs.putFloat("hum", calOff.humidity_percent);
+  prefs.putFloat("co2", calOff.co2_ppm);
+  prefs.putFloat("co2t", calOff.co2_temp_c);
+  prefs.putFloat("co2h", calOff.co2_humidity_percent);
+  prefs.putFloat("ec", calOff.ec_tds_value);
+  prefs.putFloat("ph", calOff.ph_value);
+  prefs.putFloat("pht", calOff.ph_temp_c);
+  prefs.putFloat("npkn", calOff.npk_n);
+  prefs.putFloat("npkp", calOff.npk_p);
+  prefs.putFloat("npkk", calOff.npk_k);
+  prefs.end();
+}
+
+/**************************************************************
  * MODBUS / SENSORS
  **************************************************************/
 static void clearInactiveSensorReadings(){
@@ -444,6 +506,10 @@ static void clearInactiveSensorReadings(){
     sens.ph_valid = false;
     sens.ph_value = sens.ph_temp_c = NAN;
   }
+  if (sensorType != SENSOR_NPK) {
+    sens.npk_valid = false;
+    sens.npk_n = sens.npk_p = sens.npk_k = NAN;
+  }
 }
 
 static void sensorTick(){
@@ -456,8 +522,8 @@ static void sensorTick(){
       if (r == modbusNode.ku8MBSuccess) {
         uint16_t rawHum  = modbusNode.getResponseBuffer(0);
         int16_t  rawTemp = (int16_t)modbusNode.getResponseBuffer(1);
-        sens.humidity_percent = rawHum / 10.0f;
-        sens.temp_c = rawTemp / 10.0f;
+        sens.humidity_percent = rawHum / 10.0f + calOff.humidity_percent;
+        sens.temp_c = rawTemp / 10.0f + calOff.temp_c;
         sens.th_valid = true;
       } else {
         sens.th_valid = false;
@@ -472,9 +538,9 @@ static void sensorTick(){
         uint16_t rawHum  = modbusNode.getResponseBuffer(0);
         int16_t  rawTemp = (int16_t)modbusNode.getResponseBuffer(1);
         uint16_t rawCo2  = modbusNode.getResponseBuffer(2);
-        sens.co2_humidity_percent = rawHum / 10.0f;
-        sens.co2_temp_c = rawTemp / 10.0f;
-        sens.co2_ppm = rawCo2;
+        sens.co2_humidity_percent = rawHum / 10.0f + calOff.co2_humidity_percent;
+        sens.co2_temp_c = rawTemp / 10.0f + calOff.co2_temp_c;
+        sens.co2_ppm = rawCo2 + calOff.co2_ppm;
         sens.co2_valid = true;
       } else {
         sens.co2_valid = false;
@@ -487,7 +553,7 @@ static void sensorTick(){
       uint8_t r = modbusNode.readHoldingRegisters(0x0000, 2);
       if (r == modbusNode.ku8MBSuccess) {
         uint16_t rawVal = modbusNode.getResponseBuffer(1);
-        sens.ec_tds_value = rawVal / 10.0f;
+        sens.ec_tds_value = rawVal / 10.0f + calOff.ec_tds_value;
         sens.ec_valid = true;
       } else {
         sens.ec_valid = false;
@@ -501,12 +567,26 @@ static void sensorTick(){
       if (r == modbusNode.ku8MBSuccess) {
         int16_t  rawTemp = (int16_t)modbusNode.getResponseBuffer(0);
         uint16_t rawPh   = modbusNode.getResponseBuffer(1);
-        sens.ph_temp_c = rawTemp / 10.0f;
-        sens.ph_value = rawPh / 10.0f;
+        sens.ph_temp_c = rawTemp / 10.0f + calOff.ph_temp_c;
+        sens.ph_value = rawPh / 10.0f + calOff.ph_value;
         sens.ph_valid = true;
       } else {
         sens.ph_valid = false;
         Serial.printf("[Modbus] pH sensor error: 0x%02X\n", r);
+      }
+      break;
+    }
+    case SENSOR_NPK: {
+      // RS-NPK-N01-TR: 0x001E nitrogen, 0x001F phosphorus, 0x0020 potassium (all mg/kg, integer)
+      uint8_t r = modbusNode.readHoldingRegisters(0x001E, 3);
+      if (r == modbusNode.ku8MBSuccess) {
+        sens.npk_n = modbusNode.getResponseBuffer(0) + calOff.npk_n;
+        sens.npk_p = modbusNode.getResponseBuffer(1) + calOff.npk_p;
+        sens.npk_k = modbusNode.getResponseBuffer(2) + calOff.npk_k;
+        sens.npk_valid = true;
+      } else {
+        sens.npk_valid = false;
+        Serial.printf("[Modbus] NPK sensor error: 0x%02X\n", r);
       }
       break;
     }
@@ -549,6 +629,11 @@ static void mqttPublishNow(){
       doc["ph_value"] = sens.ph_value;
       doc["ph_temp_c"] = sens.ph_temp_c;
       break;
+    case SENSOR_NPK:
+      doc["npk_n"] = sens.npk_n;
+      doc["npk_p"] = sens.npk_p;
+      doc["npk_k"] = sens.npk_k;
+      break;
   }
 
   char buf[384];
@@ -583,6 +668,20 @@ static void mqttPublishNow(){
       if (!isnan(sens.ph_value)) {
         dtostrf(sens.ph_value, 0, 1, tmp);
         esp_mqtt_client_publish(mqttHandle, (base + "/ph").c_str(), tmp, 0, qos, retain);
+      }
+      break;
+    case SENSOR_NPK:
+      if (!isnan(sens.npk_n)) {
+        dtostrf(sens.npk_n, 0, 0, tmp);
+        esp_mqtt_client_publish(mqttHandle, (base + "/npk_n").c_str(), tmp, 0, qos, retain);
+      }
+      if (!isnan(sens.npk_p)) {
+        dtostrf(sens.npk_p, 0, 0, tmp);
+        esp_mqtt_client_publish(mqttHandle, (base + "/npk_p").c_str(), tmp, 0, qos, retain);
+      }
+      if (!isnan(sens.npk_k)) {
+        dtostrf(sens.npk_k, 0, 0, tmp);
+        esp_mqtt_client_publish(mqttHandle, (base + "/npk_k").c_str(), tmp, 0, qos, retain);
       }
       break;
   }
@@ -925,7 +1024,7 @@ static void setupRoutes_STA(){
 
   server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *req){
     if (!requireAuthOr401(req)) return;
-    StaticJsonDocument<448> doc;
+    StaticJsonDocument<640> doc;
     doc["ok"] = true;
     doc["sensor_type"] = sensorTypeStr(sensorType);
     doc["temp_c"] = sens.temp_c;
@@ -940,6 +1039,10 @@ static void setupRoutes_STA(){
     doc["ph_value"] = sens.ph_value;
     doc["ph_temp_c"] = sens.ph_temp_c;
     doc["ph_valid"] = sens.ph_valid;
+    doc["npk_n"] = sens.npk_n;
+    doc["npk_p"] = sens.npk_p;
+    doc["npk_k"] = sens.npk_k;
+    doc["npk_valid"] = sens.npk_valid;
     sendJson(req, doc);
   });
 
@@ -963,7 +1066,7 @@ static void setupRoutes_STA(){
         sendJson(req, out); return;
       }
       String type = in["type"] | "";
-      if (type != "th" && type != "co2" && type != "ec" && type != "ph"){
+      if (type != "th" && type != "co2" && type != "ec" && type != "ph" && type != "npk"){
         out["ok"] = false; out["err"] = "invalid_type";
         sendJson(req, out); return;
       }
@@ -1005,6 +1108,52 @@ static void setupRoutes_STA(){
 
     sendJson(req, doc);
   });
+
+  server.on("/api/settings/offsets", HTTP_GET, [](AsyncWebServerRequest *req){
+    if (!requireAuthOr401(req)) return;
+    StaticJsonDocument<384> doc;
+    doc["ok"] = true;
+    doc["temp_c"] = calOff.temp_c;
+    doc["humidity_percent"] = calOff.humidity_percent;
+    doc["co2_ppm"] = calOff.co2_ppm;
+    doc["co2_temp_c"] = calOff.co2_temp_c;
+    doc["co2_humidity_percent"] = calOff.co2_humidity_percent;
+    doc["ec_tds_value"] = calOff.ec_tds_value;
+    doc["ph_value"] = calOff.ph_value;
+    doc["ph_temp_c"] = calOff.ph_temp_c;
+    doc["npk_n"] = calOff.npk_n;
+    doc["npk_p"] = calOff.npk_p;
+    doc["npk_k"] = calOff.npk_k;
+    sendJson(req, doc);
+  });
+
+  server.on("/api/settings/offsets", HTTP_POST,
+    [](AsyncWebServerRequest *req){},
+    NULL,
+    [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t, size_t){
+      if (!requireAuthOr401(req)) return;
+      StaticJsonDocument<384> in;
+      StaticJsonDocument<128> out;
+      if (deserializeJson(in, data, len)){
+        out["ok"] = false; out["err"] = "bad_json";
+        sendJson(req, out); return;
+      }
+      if (in.containsKey("temp_c"))               calOff.temp_c               = in["temp_c"].as<float>();
+      if (in.containsKey("humidity_percent"))      calOff.humidity_percent     = in["humidity_percent"].as<float>();
+      if (in.containsKey("co2_ppm"))               calOff.co2_ppm              = in["co2_ppm"].as<float>();
+      if (in.containsKey("co2_temp_c"))            calOff.co2_temp_c           = in["co2_temp_c"].as<float>();
+      if (in.containsKey("co2_humidity_percent"))  calOff.co2_humidity_percent = in["co2_humidity_percent"].as<float>();
+      if (in.containsKey("ec_tds_value"))          calOff.ec_tds_value         = in["ec_tds_value"].as<float>();
+      if (in.containsKey("ph_value"))              calOff.ph_value             = in["ph_value"].as<float>();
+      if (in.containsKey("ph_temp_c"))             calOff.ph_temp_c            = in["ph_temp_c"].as<float>();
+      if (in.containsKey("npk_n"))                 calOff.npk_n                = in["npk_n"].as<float>();
+      if (in.containsKey("npk_p"))                 calOff.npk_p                = in["npk_p"].as<float>();
+      if (in.containsKey("npk_k"))                 calOff.npk_k                = in["npk_k"].as<float>();
+      saveOffsets();
+      out["ok"] = true;
+      sendJson(req, out);
+    }
+  );
 
   server.begin();
   Serial.println("[STA] Web server started.");
@@ -1055,6 +1204,7 @@ void setup(){
 
   loadMqtt();
   loadSensorType();
+  loadOffsets();
 
   Serial2.begin(sensorBaud(sensorType), SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
 

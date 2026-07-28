@@ -87,10 +87,11 @@ class RS485NodeUI {
     // Maps each sensor type to its card-grid element id — add a new
     // entry here (plus a <select> option and card grid in index.html)
     // when a new sensor type is added to the firmware.
-    static SENSOR_CARD_IDS = { th: 'thCards', co2: 'co2Cards', ec: 'ecCards', ph: 'phCards' };
+    static SENSOR_CARD_IDS = { th: 'thCards', co2: 'co2Cards', ec: 'ecCards', ph: 'phCards', npk: 'npkCards' };
 
     updateSensorSelector(type) {
         if (!type) return;
+        currentSensorType = type;
         const select = document.getElementById('sensorSelect');
         if (select) select.value = type;
         for (const [t, cardId] of Object.entries(RS485NodeUI.SENSOR_CARD_IDS)) {
@@ -122,11 +123,15 @@ class RS485NodeUI {
         this.setValueText('ecValue', data?.ec_tds_value, 1);
         this.setValueText('phValue', data?.ph_value, 1);
         this.setValueText('phTempValue', data?.ph_temp_c, 1);
+        this.setValueText('npkNValue', data?.npk_n, 0);
+        this.setValueText('npkPValue', data?.npk_p, 0);
+        this.setValueText('npkKValue', data?.npk_k, 0);
 
         this.setBadge('thBadge', !!data?.th_valid);
         this.setBadge('co2Badge', !!data?.co2_valid);
         this.setBadge('ecBadge', !!data?.ec_valid);
         this.setBadge('phBadge', !!data?.ph_valid);
+        this.setBadge('npkBadge', !!data?.npk_valid);
     }
 
     updateMQTTSettings(config) {
@@ -185,6 +190,20 @@ class RS485NodeUI {
     }
 }
 
+let currentSensorType = 'th';
+
+// Maps each sensor type to its offset-group element id and the input
+// fields it owns — mirrors RS485NodeUI.SENSOR_CARD_IDS. Add an entry here
+// (plus the matching offset-group markup in index.html and offset struct
+// field in main.cpp) when a new sensor type is added.
+const OFFSET_GROUPS = {
+    th:  { groupId: 'offTh',  fields: { temp_c: 'offTempC', humidity_percent: 'offHumidity' } },
+    co2: { groupId: 'offCo2', fields: { co2_ppm: 'offCo2Ppm', co2_temp_c: 'offCo2TempC', co2_humidity_percent: 'offCo2Humidity' } },
+    ec:  { groupId: 'offEc',  fields: { ec_tds_value: 'offEcTds' } },
+    ph:  { groupId: 'offPh',  fields: { ph_value: 'offPhValue', ph_temp_c: 'offPhTempC' } },
+    npk: { groupId: 'offNpk', fields: { npk_n: 'offNpkN', npk_p: 'offNpkP', npk_k: 'offNpkK' } },
+};
+
 async function selectSensor(type) {
     ui.updateSensorSelector(type);
     try {
@@ -203,13 +222,72 @@ async function selectSensor(type) {
 }
 
 function navigateTo(view) {
-    if (view === 'mqtt') {
+    if (view === 'settings') {
+        document.getElementById('settingsModal').classList.add('active');
+    } else if (view === 'mqtt') {
+        closeModal();
         document.getElementById('mqttModal').classList.add('active');
+    } else if (view === 'offset') {
+        closeModal();
+        loadOffsets();
+        document.getElementById('offsetModal').classList.add('active');
     }
 }
 
 function closeModal() {
     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
+}
+
+async function loadOffsets() {
+    const msgEl = document.getElementById('offsetMsg');
+    msgEl.textContent = '';
+    msgEl.className = 'wizard-msg';
+    try {
+        const cfg = await ui.fetchAPI('/api/settings/offsets');
+        Object.values(OFFSET_GROUPS).forEach(g => {
+            document.getElementById(g.groupId).style.display = 'none';
+        });
+        const group = OFFSET_GROUPS[currentSensorType] || OFFSET_GROUPS.th;
+        document.getElementById(group.groupId).style.display = '';
+        for (const [key, elId] of Object.entries(group.fields)) {
+            const el = document.getElementById(elId);
+            if (el) el.value = cfg[key] ?? 0;
+        }
+    } catch (e) {
+        msgEl.textContent = 'Failed to load offsets: ' + e.message;
+        msgEl.className = 'wizard-msg err';
+    }
+}
+
+async function saveOffsets() {
+    const group = OFFSET_GROUPS[currentSensorType] || OFFSET_GROUPS.th;
+    const msgEl = document.getElementById('offsetMsg');
+    const btn = document.getElementById('offsetSaveBtn');
+    const body = {};
+    for (const [key, elId] of Object.entries(group.fields)) {
+        const v = parseFloat(document.getElementById(elId).value);
+        body[key] = isFinite(v) ? v : 0;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+        const r = await fetch('/api/settings/offsets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.err || 'failed');
+        msgEl.textContent = '✓ Offset saved';
+        msgEl.className = 'wizard-msg ok';
+    } catch (e) {
+        msgEl.textContent = 'Error: ' + e.message;
+        msgEl.className = 'wizard-msg err';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Offset';
+    }
 }
 
 async function connectToPlatform() {

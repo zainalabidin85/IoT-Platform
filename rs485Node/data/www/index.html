@@ -40,6 +40,7 @@
                     <option value="co2">CWT CO2</option>
                     <option value="ec">CWT-BL EC/TDS</option>
                     <option value="ph">CWT-BL pH</option>
+                    <option value="npk">RS-NPK-N01 Soil NPK</option>
                 </select>
             </div>
 
@@ -150,12 +151,108 @@
                     </div>
                 </div>
             </div>
+            <div class="sensors-grid" id="npkCards" style="display:none">
+                <div class="sensor-card npk-card">
+                    <div class="card-header">
+                        <span class="card-icon">🌱</span>
+                        <span class="card-title">Nitrogen (N)</span>
+                    </div>
+                    <div class="card-value" id="npkNValue">--</div>
+                    <div class="card-unit">mg/kg</div>
+                    <div class="card-footer">
+                        <span class="voltage">RS-NPK-N01-TR</span>
+                        <span class="cal-badge" id="npkBadge">● Live</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card">
+                    <div class="card-header">
+                        <span class="card-icon">🧪</span>
+                        <span class="card-title">Phosphorus (P)</span>
+                    </div>
+                    <div class="card-value" id="npkPValue">--</div>
+                    <div class="card-unit">mg/kg</div>
+                    <div class="card-footer">
+                        <span class="voltage">RS-NPK-N01-TR</span>
+                    </div>
+                </div>
+
+                <div class="sensor-card">
+                    <div class="card-header">
+                        <span class="card-icon">🍌</span>
+                        <span class="card-title">Potassium (K)</span>
+                    </div>
+                    <div class="card-value" id="npkKValue">--</div>
+                    <div class="card-unit">mg/kg</div>
+                    <div class="card-footer">
+                        <span class="voltage">RS-NPK-N01-TR</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="nav-bar">
-            <div class="nav-item" onclick="navigateTo('mqtt')">
-                <span class="nav-icon">📡</span>
-                <span class="nav-label">MQTT</span>
+            <div class="nav-item" onclick="navigateTo('settings')">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-button" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-row settings-link" onclick="navigateTo('mqtt')">
+                    <label>📡 MQTT</label>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="setting-row settings-link" onclick="navigateTo('offset')">
+                    <label>🎚️ Calibration Offset</label>
+                    <span class="chevron">›</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="offsetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Calibration Offset</h2>
+                <button class="close-button" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13px; color:#86868b; margin-bottom:16px;">
+                    Added to the raw reading of the active sensor before it's displayed and published. Use to correct drift against a trusted reference.
+                </p>
+
+                <div class="offset-group" id="offTh" style="display:none">
+                    <div class="setting-row"><label>Temperature (°C)</label><input type="number" step="0.1" id="offTempC"></div>
+                    <div class="setting-row"><label>Humidity (%RH)</label><input type="number" step="0.1" id="offHumidity"></div>
+                </div>
+                <div class="offset-group" id="offCo2" style="display:none">
+                    <div class="setting-row"><label>CO2 (ppm)</label><input type="number" step="1" id="offCo2Ppm"></div>
+                    <div class="setting-row"><label>Temperature (°C)</label><input type="number" step="0.1" id="offCo2TempC"></div>
+                    <div class="setting-row"><label>Humidity (%RH)</label><input type="number" step="0.1" id="offCo2Humidity"></div>
+                </div>
+                <div class="offset-group" id="offEc" style="display:none">
+                    <div class="setting-row"><label>EC / TDS</label><input type="number" step="0.1" id="offEcTds"></div>
+                </div>
+                <div class="offset-group" id="offPh" style="display:none">
+                    <div class="setting-row"><label>pH</label><input type="number" step="0.1" id="offPhValue"></div>
+                    <div class="setting-row"><label>Temperature (°C)</label><input type="number" step="0.1" id="offPhTempC"></div>
+                </div>
+                <div class="offset-group" id="offNpk" style="display:none">
+                    <div class="setting-row"><label>Nitrogen N (mg/kg)</label><input type="number" step="1" id="offNpkN"></div>
+                    <div class="setting-row"><label>Phosphorus P (mg/kg)</label><input type="number" step="1" id="offNpkP"></div>
+                    <div class="setting-row"><label>Potassium K (mg/kg)</label><input type="number" step="1" id="offNpkK"></div>
+                </div>
+
+                <button class="save-button" id="offsetSaveBtn" onclick="saveOffsets()">Save Offset</button>
+                <div class="wizard-msg" id="offsetMsg"></div>
             </div>
         </div>
     </div>
