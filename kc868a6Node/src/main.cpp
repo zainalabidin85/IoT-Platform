@@ -114,6 +114,7 @@ static DallasTemperature tempSensor(&oneWire);
 // Sensor readings (NaN = not yet read)
 static float ecVoltage    = NAN;
 static float waterPercent = NAN;
+static float waterVoltage = NAN;   // raw ADC volts, unclamped (used by calibration wizard)
 static float tempC        = NAN;
 
 // EC two-point calibration: EC (mS/cm) = (ecVoltage - ecOffset) * ecSlope
@@ -151,7 +152,7 @@ Preferences prefs;
 
 static const char* PLATFORM_API_URL = "https://api-iot.unitani.com";
 static const char* NODE_TYPE        = "kc868a6Node";
-static const char* FW_VERSION       = "1.0.7";
+static const char* FW_VERSION       = "1.0.8";
 static String       _otaTopic;
 static String        pendingOtaUrl;   // set from MQTT callback, consumed in loop()
 
@@ -898,13 +899,14 @@ static void setupRoutes_STA() {
   // Sensor readings endpoint
   server.on("/api/sensors", HTTP_GET, [](AsyncWebServerRequest *r){
     if (!requireAuthOr401(r)) return;
-    StaticJsonDocument<320> d;
+    StaticJsonDocument<384> d;
     if (!isnan(tempC))        d["temperature"] = serialized(String(tempC, 1));
     if (!isnan(ecVoltage)) {
       d["ec"]         = serialized(String((ecVoltage - ecOffset) * ecSlope, 2));
       d["ec_voltage"] = serialized(String(ecVoltage, 3));
     }
     if (!isnan(waterPercent)) d["water_level"] = serialized(String(waterPercent, 1));
+    if (!isnan(waterVoltage)) d["water_voltage"] = serialized(String(waterVoltage, 3));
     d["ec_slope"]    = ecSlope;
     d["ec_offset"]   = ecOffset;
     d["water_v_min"] = waterVMin;
@@ -1210,6 +1212,7 @@ void loop() {
     ecVoltage = analogRead(PIN_EC_ADC) * (5.0f / 4095.0f);
     {
       float wv  = analogRead(PIN_WATER_ADC) * (5.0f / 4095.0f);
+      waterVoltage = wv;
       float span = waterVMax - waterVMin;
       if (span < 0.01f) {
         waterPercent = 0.0f;

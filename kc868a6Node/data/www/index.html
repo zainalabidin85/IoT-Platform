@@ -498,17 +498,10 @@
         setText('ecLiveV1', liveEcV.toFixed(3));
         setText('ecLiveV2', liveEcV.toFixed(3));
       }
-      if (d.ec_voltage !== undefined && d.water_v_min !== undefined && d.water_v_max !== undefined) {
-        const wl   = parseFloat(d.water_level ?? 0);
-        const vmin = parseFloat(d.water_v_min);
-        const vmax = parseFloat(d.water_v_max);
-        liveWaterV = vmin + (wl / 100) * (vmax - vmin);
+      if (d.water_voltage !== undefined) {
+        liveWaterV = parseFloat(d.water_voltage);
         setText('wlLiveV1', liveWaterV.toFixed(3));
         setText('wlLiveV2', liveWaterV.toFixed(3));
-      } else if (d.ec_voltage !== undefined) {
-        // water not yet calibrated — use raw ADC voltage fallback
-        const rawWater = parseFloat(d.ec_voltage ?? 0); // placeholder — real would need separate field
-        // Don't update if we don't have the right field
       }
     } catch(e) {}
   }
@@ -641,9 +634,9 @@
   const wl = { step:1, vMin:null, vMax:null };
 
   function wlGoStep(n) {
-    if (n === 2 && !wl.vMin) { wlShowErr(1, 'Capture the empty level first.'); return; }
+    if (n === 2 && wl.vMin === null) { wlShowErr(1, 'Capture the empty level first.'); return; }
     if (n === 3) {
-      if (!wl.vMax) { wlShowErr(2, 'Capture the full level first.'); return; }
+      if (wl.vMax === null) { wlShowErr(2, 'Capture the full level first.'); return; }
       if (wl.vMax - wl.vMin < 0.1) { wlShowErr(2, 'Span too small (< 0.1 V). Ensure tank is truly empty vs. full.'); return; }
       wlHideErr(2);
       const span = wl.vMax - wl.vMin;
@@ -677,22 +670,8 @@
     try {
       const r = await fetch('/api/sensors');
       const d = await r.json();
-      // Use ec_voltage as a proxy to read raw ADC; firmware exposes ec_voltage always
-      // For water we need a raw voltage — fetch it via a fresh sensor read and back-compute
-      let v = null;
-      if (d.water_v_min !== undefined && d.water_v_max !== undefined && d.water_level !== undefined) {
-        const vmin2 = parseFloat(d.water_v_min);
-        const vmax2 = parseFloat(d.water_v_max);
-        const wl2   = parseFloat(d.water_level);
-        v = vmin2 + (wl2 / 100) * (vmax2 - vmin2);
-      } else {
-        // Sensor not yet calibrated — can't back-compute; poll raw via a workaround:
-        // We'll set vmin/vmax to 0/5 temporarily and the fw will return 0-100% mapped linearly.
-        // Better: call with water_v_min=0&water_v_max=5 pre-set, then back-compute.
-        // For first-time calibration, back-compute from default 0-5V range.
-        v = parseFloat(d.water_level ?? 0) * 5.0 / 100.0;
-      }
-      if (v === null) { wlShowErr(step, 'Sensor not available.'); return; }
+      const v = d.water_voltage !== undefined ? parseFloat(d.water_voltage) : null;
+      if (v === null || isNaN(v)) { wlShowErr(step, 'Sensor not available.'); btn.disabled = false; btn.textContent = step === 1 ? 'Capture Empty Level' : 'Capture Full Level'; return; }
       liveWaterV = v;
       setText('wlLiveV'+step, v.toFixed(3));
       if (step === 1) {
