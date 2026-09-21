@@ -1,5 +1,9 @@
-<img src="assets/screenshot.png" alt="Screenshot" width="400">
-<img src="assets/screenshot1.png" alt="Screenshot1" width="400">
+<p align="center">
+  <img src="assets/screenshot.png" alt="Screenshot" width="500">
+</p>
+<p align="center">
+  <img src="assets/screenshot1.png" alt="Screenshot" width="500">
+</p>
 
 # IoT Platform — Node Firmware Collection
 
