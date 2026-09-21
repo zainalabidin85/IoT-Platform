@@ -1,3 +1,6 @@
+<img src="assets/screenshot.png" alt="Screenshot" width="400">
+<img src="assets/screenshot1.png" alt="Screenshot" width="400">
+
 # IoT Platform — Node Firmware Collection
 
 A collection of ESP32/ESP32-C3/ESP32-S3 firmware projects for MQTT-based IoT sensor and control nodes. Each node is a self-contained PlatformIO project that connects to the [IoT Platform](https://iot.unitani.com) and publishes data over MQTT.
